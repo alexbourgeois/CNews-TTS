@@ -28,6 +28,7 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("capture", help="enregistrer le direct en continu (Ctrl+C pour arrêter)")
+    sub.add_parser("transcribe", help="transcrire les fichiers audio en attente, puis s'arrêter")
 
     p_cov = sub.add_parser("coverage", help="afficher les périodes enregistrées et les trous")
     p_cov.add_argument("--since", help="date de début AAAA-MM-JJ (heure locale)")
@@ -43,6 +44,12 @@ def main(argv: list[str] | None = None) -> int:
             run_capture(cfg)
         except KeyboardInterrupt:
             log.info("Arrêt demandé : capture terminée proprement.")
+    elif args.command == "transcribe":
+        from cnews_tts.transcribe import run_transcribe
+
+        _setup_logging(cfg.logs_dir / "transcribe.log")
+        if run_transcribe(cfg).failed:
+            return 1
     elif args.command == "coverage":
         since = None
         if args.since:

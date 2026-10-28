@@ -10,6 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
     "yt-dlp[curl-cffi]",
     "faster-whisper",
+    "av<19",  # faster-whisper 1.2.1 passe metadata_errors à av.open, supprimé dans PyAV 19
     "tzdata",
     "nvidia-cublas-cu12",
     "nvidia-cudnn-cu12>=9,<10",
