@@ -13,11 +13,14 @@ from cnews_tts.coverage import coverage_report
 log = logging.getLogger("cnews_tts")
 
 
-def _setup_logging(log_file: Path) -> None:
+def _setup_logging(log_file: Path, console: bool = True) -> None:
     log_file.parent.mkdir(parents=True, exist_ok=True)
     fmt = logging.Formatter("%(asctime)s %(levelname)s %(message)s", "%Y-%m-%d %H:%M:%S")
     log.setLevel(logging.INFO)
-    for handler in (logging.StreamHandler(), logging.FileHandler(log_file, encoding="utf-8")):
+    handlers = [logging.FileHandler(log_file, encoding="utf-8")]
+    if console:
+        handlers.append(logging.StreamHandler())
+    for handler in handlers:
         handler.setFormatter(fmt)
         log.addHandler(handler)
 
@@ -36,6 +39,10 @@ def main(argv: list[str] | None = None) -> int:
     p_follow.add_argument("--lines", type=int, default=10, help="nombre de phrases déjà transcrites à afficher")
     p_follow.add_argument("--alert", action="store_true",
                           help="jouer un son quand un mot de la liste [alert] de config.toml est prononcé")
+
+    p_live = sub.add_parser("live", help="transcrire le direct avec quelques secondes de retard (Ctrl+C pour arrêter)")
+    p_live.add_argument("--alert", action="store_true",
+                        help="jouer un son quand un mot de la liste [alert] de config.toml est prononcé")
 
     p_cov = sub.add_parser("coverage", help="afficher les périodes enregistrées et les trous")
     p_cov.add_argument("--since", help="date de début AAAA-MM-JJ (heure locale)")
@@ -68,6 +75,14 @@ def main(argv: list[str] | None = None) -> int:
 
         try:
             run_follow(cfg.transcripts_dir, args.lines, keywords=cfg.alert_keywords if args.alert else ())
+        except KeyboardInterrupt:
+            pass
+    elif args.command == "live":
+        from cnews_tts.live import run_live
+
+        _setup_logging(cfg.logs_dir / "live.log", console=False)
+        try:
+            run_live(cfg, cfg.alert_keywords if args.alert else ())
         except KeyboardInterrupt:
             pass
     elif args.command == "coverage":

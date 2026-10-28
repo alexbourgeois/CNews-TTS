@@ -31,11 +31,11 @@ def register_nvidia_dlls() -> None:
                 os.environ["PATH"] = str(bin_dir) + os.pathsep + os.environ.get("PATH", "")
 
 
-def load_model(cfg: Config):
+def load_model(cfg: Config, name: str | None = None):
     register_nvidia_dlls()
     from faster_whisper import WhisperModel
 
-    return WhisperModel(cfg.model, device=cfg.device, compute_type=cfg.compute_type)
+    return WhisperModel(name or cfg.model, device=cfg.device, compute_type=cfg.compute_type)
 
 
 def transcribe_file(model, audio_path: Path, cfg: Config) -> tuple[list[dict], float, int]:

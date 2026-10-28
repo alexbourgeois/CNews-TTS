@@ -26,8 +26,12 @@ hallucination_blacklist = [
 # Un mot seul couvre tous les mots qui commencent par lui (« immigr » : immigration, immigrés…) ;
 # une expression doit apparaître telle quelle.
 keywords = [
-  "immigr", "émigr", "migr", "remigr", "clandestin", "sans-papiers", "étranger",
+  "Marine", "Le pen", "immigr", "émigr", "migr", "remigr", "clandestin", "sans-papiers", "étranger",
   "réfugié", "asile", "OQTF", "regroupement familial", "titre de séjour",
   "naturalisation", "frontière", "expulsion", "passeur", "Frontex", "Lampedusa",
   "aide médicale d'État",
 ]
+
+[live]
+# Modèle de la commande « live » : plus rapide que large-v3, pour quelques secondes de retard seulement.
+model = "large-v3-turbo"

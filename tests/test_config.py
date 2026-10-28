@@ -17,3 +17,4 @@ def test_load_repo_config():
     assert cfg.model == "large-v3" and cfg.language == "fr"
     assert "Sous-titrage ST' 501" in cfg.hallucination_blacklist
     assert "immigr" in cfg.alert_keywords
+    assert cfg.live_model == "large-v3-turbo"

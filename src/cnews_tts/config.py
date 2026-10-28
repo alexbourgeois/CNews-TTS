@@ -20,6 +20,7 @@ class Config:
     timezone: str
     hallucination_blacklist: tuple[str, ...]
     alert_keywords: tuple[str, ...] = ()
+    live_model: str = "large-v3-turbo"
 
     @property
     def work_dir(self) -> Path:
@@ -61,4 +62,5 @@ def load_config(path: Path) -> Config:
         timezone=transcribe["timezone"],
         hallucination_blacklist=tuple(transcribe["hallucination_blacklist"]),
         alert_keywords=tuple(raw.get("alert", {}).get("keywords", [])),
+        live_model=raw.get("live", {}).get("model", "large-v3-turbo"),
     )

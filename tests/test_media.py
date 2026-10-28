@@ -1,6 +1,6 @@
 import subprocess
 
-from cnews_tts.media import build_ffmpeg_cmd, probe_duration, stop_ffmpeg
+from cnews_tts.media import build_ffmpeg_cmd, build_live_cmd, probe_duration, stop_ffmpeg
 from cnews_tts.stream import StreamInfo
 
 
@@ -42,3 +42,15 @@ def test_stop_ffmpeg_is_graceful():
     p = subprocess.Popen(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "sine", "-f", "null", "-"], stdin=subprocess.PIPE)
     stop_ffmpeg(p, timeout_s=10)
     assert p.returncode == 0
+
+
+def test_build_live_cmd_streams_pcm_from_the_live_edge():
+    cmd = build_live_cmd(StreamInfo("https://x/live.m3u8", {"User-Agent": "UA"}))
+
+    def arg(flag):
+        return cmd[cmd.index(flag) + 1]
+
+    assert cmd.index("-headers") < cmd.index("-i") and cmd.index("-live_start_index") < cmd.index("-i")
+    assert arg("-live_start_index") == "-1" and arg("-i") == "https://x/live.m3u8"
+    assert (arg("-ac"), arg("-ar"), arg("-f")) == ("1", "16000", "s16le")
+    assert cmd[-1] == "pipe:1"

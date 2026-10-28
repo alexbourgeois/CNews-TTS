@@ -53,7 +53,15 @@ En continu, dans une deuxième fenêtre :
 
 Le modèle reste chargé sur la carte graphique (~3-4 Go de mémoire vidéo) et chaque fichier est transcrit dès qu'il est terminé. Ctrl+C pour arrêter.
 
-### Suivre le texte en direct
+### Direct à quelques secondes : `live`
+
+```powershell
+.\.venv\Scripts\python -m cnews_tts live --alert
+```
+
+Une seule commande, indépendante de `capture` / `transcribe` : ffmpeg envoie le son du direct directement à Whisper (`large-v3-turbo`, plus rapide), découpé en mémoire aux pauses de parole (5 s au plus). Chaque phrase s'affiche **5 à 8 s après son début** ; `--alert` joue le son et marque la ligne quand un mot de la liste `[alert]` est prononcé. Rien n'est enregistré : pour le corpus d'analyse, gardez `capture` + `transcribe` (meilleure qualité, avec contexte). Le flux Dailymotion a lui-même quelques dizaines de secondes de retard sur la diffusion TV.
+
+### Suivre le texte transcrit par `transcribe --watch`
 
 Avec `capture` et `transcribe --watch` lancés, dans une troisième fenêtre :
 

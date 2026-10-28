@@ -9,10 +9,24 @@ from cnews_tts.stream import StreamInfo
 RW_TIMEOUT_US = 30_000_000  # ffmpeg abandonne une lecture réseau bloquée au bout de 30 s
 
 
-def build_ffmpeg_cmd(stream: StreamInfo, run_dir: Path, segment_seconds: int) -> list[str]:
-    cmd = ["ffmpeg", "-hide_banner", "-nostats", "-loglevel", "warning", "-rw_timeout", str(RW_TIMEOUT_US)]
+def _input_args(stream: StreamInfo) -> list[str]:
+    args = ["-rw_timeout", str(RW_TIMEOUT_US)]
     if stream.headers:
-        cmd += ["-headers", "".join(f"{k}: {v}\r\n" for k, v in stream.headers.items())]
+        args += ["-headers", "".join(f"{k}: {v}\r\n" for k, v in stream.headers.items())]
+    return args
+
+
+def build_live_cmd(stream: StreamInfo, sample_rate: int = 16000) -> list[str]:
+    """Audio brut (PCM 16 bits mono) sur la sortie standard, en partant du bout du direct."""
+    return [
+        "ffmpeg", "-hide_banner", "-nostats", "-loglevel", "error", *_input_args(stream),
+        "-live_start_index", "-1", "-i", stream.url,
+        "-map", "0:a:0", "-vn", "-ac", "1", "-ar", str(sample_rate), "-f", "s16le", "pipe:1",
+    ]
+
+
+def build_ffmpeg_cmd(stream: StreamInfo, run_dir: Path, segment_seconds: int) -> list[str]:
+    cmd = ["ffmpeg", "-hide_banner", "-nostats", "-loglevel", "warning", *_input_args(stream)]
     cmd += [
         "-i", stream.url,
         "-map", "0:a:0", "-vn", "-c:a", "copy",
