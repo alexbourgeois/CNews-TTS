@@ -34,6 +34,8 @@ def main(argv: list[str] | None = None) -> int:
 
     p_follow = sub.add_parser("follow", help="afficher le texte au fur et à mesure (Ctrl+C pour arrêter)")
     p_follow.add_argument("--lines", type=int, default=10, help="nombre de phrases déjà transcrites à afficher")
+    p_follow.add_argument("--alert", action="store_true",
+                          help="jouer un son quand un mot de la liste [alert] de config.toml est prononcé")
 
     p_cov = sub.add_parser("coverage", help="afficher les périodes enregistrées et les trous")
     p_cov.add_argument("--since", help="date de début AAAA-MM-JJ (heure locale)")
@@ -65,7 +67,7 @@ def main(argv: list[str] | None = None) -> int:
         from cnews_tts.follow import run_follow
 
         try:
-            run_follow(cfg.transcripts_dir, args.lines)
+            run_follow(cfg.transcripts_dir, args.lines, keywords=cfg.alert_keywords if args.alert else ())
         except KeyboardInterrupt:
             pass
     elif args.command == "coverage":

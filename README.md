@@ -68,6 +68,8 @@ Affiche les 10 dernières phrases (`--lines N` pour en voir plus), puis chaque n
 19:39:15  Merci beaucoup Didier von Kovlert, écrivain, prix Goncourt…
 ```
 
+**Alerte sonore** : `follow --alert` joue le son d'alerte de Windows et marque la ligne (`<<< immigr`) quand un mot lié à l'immigration est prononcé. La liste est dans la section `[alert]` de `config.toml` (accents et majuscules ignorés ; `immigr` couvre immigration, immigrés…).
+
 Le texte arrive par blocs d'une minute, 1 à 2 minutes après la diffusion. Pour moins de fichiers (et moins de coupures, voir plus bas), augmentez `segment_minutes` dans `config.toml` : le retard augmente d'autant.
 
 ### Couverture

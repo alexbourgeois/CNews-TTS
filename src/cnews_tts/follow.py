@@ -5,6 +5,8 @@ import sys
 import time
 from pathlib import Path
 
+from cnews_tts.alerts import find_keywords, play_alert
+
 
 def format_line(record: dict) -> str:
     """19:39:09  Et si on sait se persuader…"""
@@ -49,11 +51,18 @@ class TranscriptFollower:
         return new
 
 
-def run_follow(transcripts_dir: Path, backlog: int = 10, poll_s: float = 2.0) -> None:
-    """Tourne jusqu'à Ctrl+C."""
+def run_follow(transcripts_dir: Path, backlog: int = 10, poll_s: float = 2.0, keywords: tuple[str, ...] = ()) -> None:
+    """Tourne jusqu'à Ctrl+C. Avec des mots-clés : lignes marquées et son joué quand l'un est prononcé."""
     sys.stdout.reconfigure(errors="replace")
     follower = TranscriptFollower(transcripts_dir, backlog)
     while True:
+        alert = False
         for line in follower.poll():
+            hits = find_keywords(line, keywords)
+            if hits:
+                alert = True
+                line = f"{line}   <<< {', '.join(hits)}"
             print(line, flush=True)
+        if alert:
+            play_alert()
         time.sleep(poll_s)

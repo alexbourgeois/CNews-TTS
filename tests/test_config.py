@@ -16,3 +16,4 @@ def test_load_repo_config():
     assert cfg.coverage_csv == REPO / "data" / "coverage.csv"
     assert cfg.model == "large-v3" and cfg.language == "fr"
     assert "Sous-titrage ST' 501" in cfg.hallucination_blacklist
+    assert "immigr" in cfg.alert_keywords
