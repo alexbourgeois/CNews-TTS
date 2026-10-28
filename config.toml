@@ -3,7 +3,7 @@ video_id = "x3b68jn"          # Live CNEWS (secours : "x5idxxp")
 format = "bestaudio/worst"    # audio seul si dispo, sinon la variante la plus légère
 segment_minutes = 10
 stall_timeout_s = 120
-drift_tolerance_s = 120
+drift_tolerance_s = 30        # en temps normal le flux devance l'horloge d'environ 7 s
 
 [paths]
 data_dir = "data"

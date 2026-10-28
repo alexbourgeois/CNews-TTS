@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from cnews_tts import segments
 from cnews_tts.coverage import read_intervals
 from cnews_tts.segments import (
     SegmentEntry,
@@ -59,6 +60,31 @@ def test_finalize_run_drops_tiny_leftover(tmp_path):
     run = make_run(tmp_path, None, ["seg_00000.aac"])
     assert finalize_run(run, tmp_path / "audio", tmp_path / "c.csv", probe_duration=lambda p: 0.4) == []
     assert not run.exists()
+
+
+def test_finalize_run_keeps_locked_segment_for_later_recovery(tmp_path):
+    run = make_run(tmp_path, "seg_00000.aac,0.000000,108.000000\n", ["seg_00000.aac", "seg_00001.aac"])
+    with open(run / "seg_00001.aac", "rb"):  # un ffmpeg orphelin écrit encore dedans
+        out = finalize_run(run, tmp_path / "audio", tmp_path / "c.csv", probe_duration=lambda p: 42.0)
+    assert [p.path.name for p in out] == ["20261028T175812Z.aac"]
+    assert (run / "seg_00001.aac").exists()
+    out = recover_runs(tmp_path / "work", tmp_path / "audio", tmp_path / "c.csv", probe_duration=lambda p: 42.0)
+    assert [p.path.name for p in out] == ["20261028T180000Z.aac"]
+    assert not run.exists()
+
+
+def test_finalize_run_survives_locked_coverage_csv(tmp_path, monkeypatch):
+    run = make_run(tmp_path, "seg_00000.aac,0.000000,108.000000\n", ["seg_00000.aac"])
+
+    def locked(*args):
+        raise PermissionError("coverage.csv ouvert dans Excel")
+
+    monkeypatch.setattr(segments, "append_interval", locked)
+    assert finalize_run(run, tmp_path / "audio", tmp_path / "c.csv", probe_duration=lambda p: 42.0) == []
+    assert (run / "seg_00000.aac").exists()
+    monkeypatch.undo()
+    out = recover_runs(tmp_path / "work", tmp_path / "audio", tmp_path / "c.csv", probe_duration=lambda p: 42.0)
+    assert [p.path.name for p in out] == ["20261028T175812Z.aac"]
 
 
 def test_recover_runs_handles_abandoned_run_without_list(tmp_path):

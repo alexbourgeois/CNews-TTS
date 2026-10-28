@@ -32,7 +32,7 @@ Le premier lancement de `transcribe` télécharge le modèle Whisper (~3 Go). Si
 
 Laissez la fenêtre ouverte. **Ctrl+C** arrête proprement (le dernier morceau d'audio est conservé). Si la fenêtre est fermée ou si le PC plante, les morceaux en cours sont récupérés au lancement suivant.
 
-La capture se relance seule si le flux coupe (réseau, jeton expiré, flux figé), avec une attente croissante entre les essais (5 s à 5 min).
+La capture se relance seule si le flux coupe (réseau, jeton expiré, flux figé) ou après une erreur inattendue, avec une attente croissante entre les essais (5 s à 5 min). Les erreurs sont détaillées dans `data/logs/capture.log`.
 
 **PC portable : empêchez la mise en veille** (Paramètres › Système › Alimentation › « Mettre en veille après » : Jamais, au moins sur secteur). Une mise en veille arrête l'enregistrement ; au réveil la capture repart, et le trou apparaît dans la couverture.
 
@@ -52,6 +52,10 @@ La capture se relance seule si le flux coupe (réseau, jeton expiré, flux figé
 ```
 
 Affiche la période enregistrée, le pourcentage couvert et chaque trou (heure de Paris). La cause d'un trou se trouve dans `data/logs/capture.log` à la même heure. Tenez compte des trous quand vous comparez des fréquences entre périodes.
+
+Limite : si la connexion saute quelques secondes sans couper l'enregistrement, ffmpeg recolle l'audio sans laisser de trou. La capture le détecte dès que le décalage dépasse 30 s (`drift_tolerance_s`) et redémarre ; les micro-coupures plus courtes n'apparaissent pas dans la couverture.
+
+**Ne gardez pas `coverage.csv` ni les `.jsonl` ouverts dans Excel** : Excel verrouille les fichiers. La capture ne s'arrête pas pour autant (elle réessaie et le note dans le journal), mais les fichiers audio terminés attendent dans `data/work/` tant que le verrou dure.
 
 ## Les transcriptions
 
@@ -93,7 +97,7 @@ print(mots.groupby("jour")["mot"].value_counts().groupby(level=0).head(20))
 | `capture.video_id` | Direct Dailymotion : `x3b68jn` (Live CNEWS) ; secours : `x5idxxp` |
 | `capture.segment_minutes` | Durée des fichiers audio (10) |
 | `capture.stall_timeout_s` | Relance si le flux est figé depuis ce délai (120 s) |
-| `capture.drift_tolerance_s` | Relance si l'horloge et le flux divergent de plus de ce délai (120 s) |
+| `capture.drift_tolerance_s` | Relance si l'horloge et le flux divergent de plus de ce délai (30 s) |
 | `transcribe.model` | `large-v3` ; `large-v3-turbo` si la vitesse manque |
 | `transcribe.device` / `compute_type` | `cuda` / `float16` ; sans carte NVIDIA : `cpu` / `int8` avec un modèle plus petit (`small`, `medium`), nettement moins précis et sans doute trop lent pour suivre le direct |
 | `transcribe.hallucination_blacklist` | Phrases retirées de la sortie |

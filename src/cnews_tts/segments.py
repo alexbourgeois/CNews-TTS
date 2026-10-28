@@ -80,22 +80,30 @@ def promote_completed(run_dir: Path, audio_dir: Path, coverage_csv: Path) -> lis
 def finalize_run(
     run_dir: Path, audio_dir: Path, coverage_csv: Path, probe_duration: Callable[[Path], float]
 ) -> list[Promoted]:
-    """À appeler quand ffmpeg est arrêté : promeut tout ce qui reste, puis supprime le dossier du run."""
+    """À appeler quand ffmpeg est arrêté : promeut tout ce qui reste, puis supprime le dossier du run.
+
+    Un fichier verrouillé (ffmpeg orphelin, coverage.csv ouvert ailleurs…) reste dans le run,
+    qui est alors conservé pour une prochaine récupération.
+    """
     promoted = promote_completed(run_dir, audio_dir, coverage_csv)
     entries = {e.filename: e for e in read_segment_list(run_dir / SEGMENT_LIST)}
     next_start = max((e.end_rel for e in entries.values()), default=0.0)
     for src in sorted(run_dir.glob(SEGMENT_GLOB)):
         entry = entries.get(src.name)
-        if entry is not None:
-            promoted.append(_promote(run_dir, src, entry.start_rel, entry.end_rel, audio_dir, coverage_csv))
+        try:
+            if entry is not None:
+                promoted.append(_promote(run_dir, src, entry.start_rel, entry.end_rel, audio_dir, coverage_csv))
+                continue
+            duration = probe_duration(src)
+            if duration < MIN_LEFTOVER_S:
+                src.unlink()
+                continue
+            promoted.append(_promote(run_dir, src, next_start, next_start + duration, audio_dir, coverage_csv))
+            next_start += duration
+        except PermissionError:
             continue
-        duration = probe_duration(src)
-        if duration < MIN_LEFTOVER_S:
-            src.unlink()
-            continue
-        promoted.append(_promote(run_dir, src, next_start, next_start + duration, audio_dir, coverage_csv))
-        next_start += duration
-    shutil.rmtree(run_dir)
+    if not any(run_dir.glob(SEGMENT_GLOB)):
+        shutil.rmtree(run_dir)
     return promoted
 
 

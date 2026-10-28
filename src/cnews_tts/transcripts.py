@@ -45,5 +45,8 @@ def append_records_atomic(day_path: Path, records: list[dict]) -> None:
         existing += b"\n"
     new = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records).encode("utf-8")
     tmp = day_path.with_name(day_path.name + ".tmp")
-    tmp.write_bytes(existing + new)
+    with tmp.open("wb") as f:
+        f.write(existing + new)
+        f.flush()
+        os.fsync(f.fileno())  # sur disque avant que l'audio correspondant soit supprimé
     os.replace(tmp, day_path)

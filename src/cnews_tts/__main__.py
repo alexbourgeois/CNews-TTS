@@ -44,6 +44,9 @@ def main(argv: list[str] | None = None) -> int:
             run_capture(cfg)
         except KeyboardInterrupt:
             log.info("Arrêt demandé : capture terminée proprement.")
+        except Exception:
+            log.exception("Erreur fatale : capture arrêtée")
+            return 1
     elif args.command == "transcribe":
         from cnews_tts.transcribe import run_transcribe
 

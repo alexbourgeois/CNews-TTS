@@ -120,13 +120,18 @@ def run_capture(cfg: Config) -> None:
     """Tourne jusqu'à Ctrl+C (KeyboardInterrupt, propagé à l'appelant après un arrêt propre)."""
     for d in (cfg.work_dir, cfg.audio_dir, cfg.logs_dir):
         d.mkdir(parents=True, exist_ok=True)
-    recovered = recover_runs(cfg.work_dir, cfg.audio_dir, cfg.coverage_csv, probe_duration)
-    if recovered:
-        log.info("%d segment(s) récupéré(s) d'une capture précédente interrompue", len(recovered))
 
     backoff = BASE_BACKOFF_S
     while True:
-        productive = _capture_once(cfg)
+        try:
+            # À chaque tour : runs abandonnés au démarrage, ou laissés par un fichier verrouillé.
+            recovered = recover_runs(cfg.work_dir, cfg.audio_dir, cfg.coverage_csv, probe_duration)
+            if recovered:
+                log.info("%d segment(s) récupéré(s) d'un run précédent interrompu", len(recovered))
+            productive = _capture_once(cfg)
+        except Exception:
+            log.exception("Erreur inattendue pendant la capture")
+            productive = False
         backoff = next_backoff(backoff, productive)
         log.info("Nouvelle tentative dans %.0f s", backoff)
         time.sleep(backoff)

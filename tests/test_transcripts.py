@@ -1,5 +1,7 @@
+import os
 from datetime import datetime, timezone
 
+from cnews_tts import transcripts
 from cnews_tts.transcripts import already_transcribed, append_records_atomic, day_file, make_record
 
 UTC = timezone.utc
@@ -35,3 +37,12 @@ def test_append_empty_is_noop(tmp_path):
 
 def test_already_transcribed_missing_file(tmp_path):
     assert not already_transcribed(tmp_path / "nope.jsonl", "a.aac")
+
+
+def test_append_records_reaches_disk_before_replace(tmp_path, monkeypatch):
+    events = []
+    real_fsync, real_replace = os.fsync, os.replace
+    monkeypatch.setattr(transcripts.os, "fsync", lambda fd: (events.append("fsync"), real_fsync(fd))[1])
+    monkeypatch.setattr(transcripts.os, "replace", lambda a, b: (events.append("replace"), real_replace(a, b))[1])
+    append_records_atomic(tmp_path / "d.jsonl", [{"source": "a.aac"}])
+    assert events == ["fsync", "replace"]

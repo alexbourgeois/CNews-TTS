@@ -10,6 +10,7 @@ def test_load_repo_config():
     assert cfg.video_id == "x3b68jn"
     assert cfg.format_selector == "bestaudio/worst"
     assert cfg.segment_seconds == 600
+    assert cfg.drift_tolerance_s == 30
     assert cfg.data_dir == REPO / "data"
     assert cfg.audio_dir == REPO / "data" / "audio"
     assert cfg.coverage_csv == REPO / "data" / "coverage.csv"
