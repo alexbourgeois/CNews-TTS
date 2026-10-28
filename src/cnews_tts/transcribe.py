@@ -6,6 +6,7 @@ import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 from cnews_tts.config import Config
 from cnews_tts.hallucinations import is_hallucination
@@ -66,45 +67,57 @@ class TranscribeSummary:
         return self.audio_seconds / self.wall_seconds if self.wall_seconds else 0.0
 
 
-def run_transcribe(cfg: Config, model=None) -> TranscribeSummary:
-    """Traite les fichiers en attente, y compris ceux terminés pendant le traitement, puis s'arrête."""
+def run_transcribe(
+    cfg: Config, model=None, watch: bool = False, poll_s: float = 10.0, sleep: Callable[[float], None] = time.sleep
+) -> TranscribeSummary:
+    """Traite les fichiers en attente, y compris ceux terminés pendant le traitement, puis s'arrête.
+
+    En mode watch, ne s'arrête pas : garde le modèle chargé et revérifie toutes les poll_s secondes
+    (jusqu'à Ctrl+C).
+    """
     summary = TranscribeSummary()
     failed: set[Path] = set()
-    while batch := [p for p in pending_audio(cfg.audio_dir) if p not in failed]:
-        for path in batch:
-            try:
-                audio_start = parse_stamp(path.stem)
-            except ValueError:
-                log.error("Nom de fichier inattendu, ignoré : %s", path.name)
-                failed.add(path)
-                continue
-            day = day_file(cfg.transcripts_dir, audio_start, cfg.timezone)
-            if already_transcribed(day, path.name):
+    if watch:
+        log.info("Mode continu : nouveaux fichiers vérifiés toutes les %.0f s (Ctrl+C pour arrêter)", poll_s)
+    while True:
+        while batch := [p for p in pending_audio(cfg.audio_dir) if p not in failed]:
+            for path in batch:
+                try:
+                    audio_start = parse_stamp(path.stem)
+                except ValueError:
+                    log.error("Nom de fichier inattendu, ignoré : %s", path.name)
+                    failed.add(path)
+                    continue
+                day = day_file(cfg.transcripts_dir, audio_start, cfg.timezone)
+                if already_transcribed(day, path.name):
+                    path.unlink()
+                    log.info("%s déjà transcrit : audio supprimé", path.name)
+                    continue
+                if model is None:
+                    log.info("Chargement du modèle %s sur %s…", cfg.model, cfg.device)
+                    model = load_model(cfg)
+
+                t0 = time.monotonic()
+                try:
+                    records, duration, dropped = transcribe_file(model, path, cfg)
+                except Exception:
+                    log.exception("Échec de la transcription de %s : fichier laissé en place", path.name)
+                    failed.add(path)
+                    continue
+                append_records_atomic(day, records)
                 path.unlink()
-                log.info("%s déjà transcrit : audio supprimé", path.name)
-                continue
-            if model is None:
-                log.info("Chargement du modèle %s sur %s…", cfg.model, cfg.device)
-                model = load_model(cfg)
+                elapsed = time.monotonic() - t0
 
-            t0 = time.monotonic()
-            try:
-                records, duration, dropped = transcribe_file(model, path, cfg)
-            except Exception:
-                log.exception("Échec de la transcription de %s : fichier laissé en place", path.name)
-                failed.add(path)
-                continue
-            append_records_atomic(day, records)
-            path.unlink()
-            elapsed = time.monotonic() - t0
-
-            summary.files += 1
-            summary.audio_seconds += duration
-            summary.wall_seconds += elapsed
-            summary.dropped += dropped
-            speed = duration / elapsed if elapsed else 0.0
-            log.info("[%d] %s — %.0f s d'audio en %.0f s (%.1f×), %d segment(s) écarté(s)",
-                     summary.files, path.name, duration, elapsed, speed, dropped)
+                summary.files += 1
+                summary.audio_seconds += duration
+                summary.wall_seconds += elapsed
+                summary.dropped += dropped
+                speed = duration / elapsed if elapsed else 0.0
+                log.info("[%d] %s — %.0f s d'audio en %.0f s (%.1f×), %d segment(s) écarté(s)",
+                         summary.files, path.name, duration, elapsed, speed, dropped)
+        if not watch:
+            break
+        sleep(poll_s)
 
     summary.failed = len(failed)
     log.info("Terminé : %d fichier(s), %.2f h d'audio, vitesse moyenne %.1f×, %d segment(s) écarté(s), "

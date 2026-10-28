@@ -1,4 +1,5 @@
 import os
+import threading
 from datetime import datetime, timezone
 
 from cnews_tts import transcripts
@@ -46,3 +47,12 @@ def test_append_records_reaches_disk_before_replace(tmp_path, monkeypatch):
     monkeypatch.setattr(transcripts.os, "replace", lambda a, b: (events.append("replace"), real_replace(a, b))[1])
     append_records_atomic(tmp_path / "d.jsonl", [{"source": "a.aac"}])
     assert events == ["fsync", "replace"]
+
+
+def test_append_waits_for_a_reader_holding_the_day_file(tmp_path):
+    p = tmp_path / "d.jsonl"
+    append_records_atomic(p, [{"source": "a.aac"}])
+    reader = p.open("rb")  # « follow » ou un éditeur lit le fichier à cet instant
+    threading.Timer(0.3, reader.close).start()
+    append_records_atomic(p, [{"source": "b.aac"}])
+    assert already_transcribed(p, "a.aac") and already_transcribed(p, "b.aac")

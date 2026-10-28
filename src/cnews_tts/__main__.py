@@ -28,7 +28,12 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("capture", help="enregistrer le direct en continu (Ctrl+C pour arrêter)")
-    sub.add_parser("transcribe", help="transcrire les fichiers audio en attente, puis s'arrêter")
+    p_tr = sub.add_parser("transcribe", help="transcrire les fichiers audio en attente, puis s'arrêter")
+    p_tr.add_argument("--watch", action="store_true",
+                      help="rester ouvert et transcrire chaque fichier dès qu'il est terminé (Ctrl+C pour arrêter)")
+
+    p_follow = sub.add_parser("follow", help="afficher le texte au fur et à mesure (Ctrl+C pour arrêter)")
+    p_follow.add_argument("--lines", type=int, default=10, help="nombre de phrases déjà transcrites à afficher")
 
     p_cov = sub.add_parser("coverage", help="afficher les périodes enregistrées et les trous")
     p_cov.add_argument("--since", help="date de début AAAA-MM-JJ (heure locale)")
@@ -51,8 +56,18 @@ def main(argv: list[str] | None = None) -> int:
         from cnews_tts.transcribe import run_transcribe
 
         _setup_logging(cfg.logs_dir / "transcribe.log")
-        if run_transcribe(cfg).failed:
-            return 1
+        try:
+            if run_transcribe(cfg, watch=args.watch).failed:
+                return 1
+        except KeyboardInterrupt:
+            log.info("Arrêt demandé : transcription interrompue (le fichier en cours sera repris).")
+    elif args.command == "follow":
+        from cnews_tts.follow import run_follow
+
+        try:
+            run_follow(cfg.transcripts_dir, args.lines)
+        except KeyboardInterrupt:
+            pass
     elif args.command == "coverage":
         since = None
         if args.since:

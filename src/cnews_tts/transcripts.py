@@ -2,10 +2,14 @@
 
 import json
 import os
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from cnews_tts.timeutil import local_day, to_local_iso
+
+REPLACE_ATTEMPTS = 25
+REPLACE_WAIT_S = 0.2
 
 
 def make_record(
@@ -49,4 +53,12 @@ def append_records_atomic(day_path: Path, records: list[dict]) -> None:
         f.write(existing + new)
         f.flush()
         os.fsync(f.fileno())  # sur disque avant que l'audio correspondant soit supprimé
-    os.replace(tmp, day_path)
+    # Sous Windows, le remplacement échoue tant qu'un lecteur (follow, éditeur) tient le fichier ouvert.
+    for attempt in range(REPLACE_ATTEMPTS):
+        try:
+            os.replace(tmp, day_path)
+            return
+        except PermissionError:
+            if attempt == REPLACE_ATTEMPTS - 1:
+                raise
+            time.sleep(REPLACE_WAIT_S)

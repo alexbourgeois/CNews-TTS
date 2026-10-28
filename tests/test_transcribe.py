@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from cnews_tts import transcribe
 from cnews_tts.config import load_config
 from cnews_tts.transcribe import run_transcribe
 
@@ -83,3 +84,26 @@ def test_already_transcribed_audio_deleted_without_model_call(cfg):
     run_transcribe(cfg, model=m)
     assert m.calls == [] and not (cfg.audio_dir / A).exists()
     assert sources(cfg) == [A, B]
+
+
+def test_watch_mode_loads_model_once_and_picks_up_new_files(cfg, monkeypatch):
+    loads, sleeps = [], []
+    C = "20261028T182000Z.aac"
+
+    def fake_load(c):
+        loads.append(1)
+        return FakeModel()
+
+    def fake_sleep(s):
+        sleeps.append(s)
+        if len(sleeps) == 1:
+            (cfg.audio_dir / C).write_bytes(b"x")  # la capture termine un nouveau fichier
+        else:
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr(transcribe, "load_model", fake_load)
+    with pytest.raises(KeyboardInterrupt):
+        run_transcribe(cfg, watch=True, poll_s=7, sleep=fake_sleep)
+    assert loads == [1]
+    assert sleeps == [7, 7]
+    assert sources(cfg) == [A, B, C]

@@ -111,6 +111,15 @@ Deux programmes indépendants qui communiquent uniquement par le disque.
 - Format choisi parce qu'il se charge directement en pandas / se lit ligne à ligne, et permet de regrouper par heure ou par jour.
 - Volume indicatif : ~1 à 2 Mo de texte par jour.
 
+## Évolution : quasi temps réel (2026-10-28, demandée par l'utilisateur)
+
+L'utilisateur veut pouvoir lire le texte pendant la diffusion. Choix validé : niveau « 1 à 2 minutes de retard », pas de transcription en flux à quelques secondes.
+
+- Segments d'**1 minute** par défaut (`segment_minutes = 1`) au lieu de 10. Contrepartie acceptée : un mot à cheval sur deux fichiers peut être perdu, au pire un par minute.
+- `transcribe --watch` : reste ouvert, garde le modèle chargé, revérifie `data/audio/` toutes les 10 s.
+- `follow` : affiche les dernières phrases puis chaque nouvelle phrase (`HH:MM:SS  texte`), en suivant tous les fichiers jour.
+- Comme `follow` lit les fichiers jour pendant que la transcription les remplace, le remplacement est retenté (Windows refuse de remplacer un fichier ouvert).
+
 ## Critères de réussite
 
 1. Après ~24 h de capture puis un lancement de la transcription : environ 24 h de texte en français lisible, horodaté, sans phrases d'hallucination de la liste noire.

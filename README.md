@@ -4,8 +4,9 @@ Enregistre en continu le son du direct de CNews et le transcrit en texte horodat
 
 Deux commandes indépendantes :
 
-- **`capture`** tourne en permanence et enregistre le direct en fichiers audio de 10 minutes ;
-- **`transcribe`** se lance de temps en temps : elle transcrit tout l'audio en attente, puis supprime l'audio transcrit.
+- **`capture`** tourne en permanence et enregistre le direct en fichiers audio d'1 minute ;
+- **`transcribe`** transcrit tout l'audio en attente puis supprime l'audio transcrit — de temps en temps, ou en continu avec `--watch` ;
+- **`follow`** affiche le texte au fur et à mesure, avec 1 à 2 minutes de retard sur le direct.
 
 ## Prérequis
 
@@ -43,6 +44,31 @@ La capture se relance seule si le flux coupe (réseau, jeton expiré, flux figé
 ```
 
 À lancer quand vous voulez, y compris pendant que la capture tourne. Elle traite les fichiers du plus ancien au plus récent, affiche la vitesse obtenue, puis s'arrête. On peut l'interrompre à tout moment : rien n'est perdu ni transcrit deux fois. Un fichier illisible est signalé, laissé en place et retenté au lancement suivant.
+
+En continu, dans une deuxième fenêtre :
+
+```powershell
+.\.venv\Scripts\python -m cnews_tts transcribe --watch
+```
+
+Le modèle reste chargé sur la carte graphique (~3-4 Go de mémoire vidéo) et chaque fichier est transcrit dès qu'il est terminé. Ctrl+C pour arrêter.
+
+### Suivre le texte en direct
+
+Avec `capture` et `transcribe --watch` lancés, dans une troisième fenêtre :
+
+```powershell
+.\.venv\Scripts\python -m cnews_tts follow
+```
+
+Affiche les 10 dernières phrases (`--lines N` pour en voir plus), puis chaque nouvelle phrase dès qu'elle est transcrite :
+
+```
+19:39:09  Et si on sait se persuader que le nouveau monde c'est celui de cette violence, on est foutu.
+19:39:15  Merci beaucoup Didier von Kovlert, écrivain, prix Goncourt…
+```
+
+Le texte arrive par blocs d'une minute, 1 à 2 minutes après la diffusion. Pour moins de fichiers (et moins de coupures, voir plus bas), augmentez `segment_minutes` dans `config.toml` : le retard augmente d'autant.
 
 ### Couverture
 
@@ -85,6 +111,7 @@ print(mots.groupby("jour")["mot"].value_counts().groupby(level=0).head(20))
 ## À savoir pour l'analyse
 
 - **Les publicités et jingles parlés sont transcrits** comme le reste.
+- L'audio est découpé chaque minute : **un mot à cheval sur deux fichiers peut être perdu ou écorché**, soit au pire un mot par minute (moins de 1 % du texte).
 - Les **noms propres** sont parfois mal orthographiés (ex. « Didier von Kovlert » pour Van Cauwelaert).
 - Les heures sont celles de réception du flux : quelques dizaines de secondes de retard sur la diffusion TV, et les noms de fichiers peuvent être décalés de quelques secondes par rapport à l'heure ronde.
 - Les phrases que Whisper invente sur les silences et la musique (« Sous-titrage ST' 501 »…) sont retirées ; leur nombre est indiqué dans le journal de transcription. La liste est modifiable dans `config.toml`.
@@ -95,7 +122,7 @@ print(mots.groupby("jour")["mot"].value_counts().groupby(level=0).head(20))
 | Clé | Rôle |
 |---|---|
 | `capture.video_id` | Direct Dailymotion : `x3b68jn` (Live CNEWS) ; secours : `x5idxxp` |
-| `capture.segment_minutes` | Durée des fichiers audio (10) |
+| `capture.segment_minutes` | Durée des fichiers audio (1) : plus court = texte plus tôt, plus long = moins de mots coupés |
 | `capture.stall_timeout_s` | Relance si le flux est figé depuis ce délai (120 s) |
 | `capture.drift_tolerance_s` | Relance si l'horloge et le flux divergent de plus de ce délai (30 s) |
 | `transcribe.model` | `large-v3` ; `large-v3-turbo` si la vitesse manque |
