@@ -19,6 +19,7 @@ from cnews_tts.alerts import find_keywords, play_alert
 from cnews_tts.config import Config
 from cnews_tts.hallucinations import is_hallucination
 from cnews_tts.media import build_live_cmd, stop_ffmpeg
+from cnews_tts.speech import Speaker
 from cnews_tts.stream import StreamError, resolve_stream
 from cnews_tts.transcribe import load_model
 
@@ -58,7 +59,7 @@ def _read_blocks(pipe, q: queue.Queue) -> None:
     q.put(None)
 
 
-def _transcribe_stream(proc: subprocess.Popen, model, cfg: Config, keywords: tuple[str, ...]) -> None:
+def _transcribe_stream(proc: subprocess.Popen, model, cfg: Config, keywords: tuple[str, ...], speaker=None) -> None:
     from faster_whisper.vad import VadOptions, get_speech_timestamps
 
     vad = VadOptions(min_silence_duration_ms=200, speech_pad_ms=100)
@@ -99,14 +100,17 @@ def _transcribe_stream(proc: subprocess.Popen, model, cfg: Config, keywords: tup
             line += f"   <<< {', '.join(hits)}"
             play_alert()
         print(line, flush=True)
+        if speaker:
+            speaker.say(text)  # le texte seul, sans l'heure ni le marqueur d'alerte
         log.info("retard %.1f s — %s", (datetime.now(tz) - start).total_seconds(), text[:80])
 
 
-def run_live(cfg: Config, keywords: tuple[str, ...] = ()) -> None:
+def run_live(cfg: Config, keywords: tuple[str, ...] = (), speak: bool = False) -> None:
     """Tourne jusqu'à Ctrl+C ; se reconnecte si le flux coupe."""
     sys.stdout.reconfigure(errors="replace")
     print(f"Chargement du modèle {cfg.live_model}…", flush=True)
     model = load_model(cfg, cfg.live_model)
+    speaker = Speaker() if speak else None
     cfg.logs_dir.mkdir(parents=True, exist_ok=True)
     while True:
         try:
@@ -121,7 +125,7 @@ def run_live(cfg: Config, keywords: tuple[str, ...] = ()) -> None:
             proc = subprocess.Popen(build_live_cmd(stream, SR), stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE, stderr=ffmpeg_log)
             try:
-                _transcribe_stream(proc, model, cfg, keywords)
+                _transcribe_stream(proc, model, cfg, keywords, speaker)
             except queue.Empty:
                 log.warning("Plus de son depuis %d s", STALL_TIMEOUT_S)
             finally:

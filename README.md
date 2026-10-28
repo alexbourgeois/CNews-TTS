@@ -59,7 +59,7 @@ Le modèle reste chargé sur la carte graphique (~3-4 Go de mémoire vidéo) et 
 .\.venv\Scripts\python -m cnews_tts live --alert
 ```
 
-Une seule commande, indépendante de `capture` / `transcribe` : ffmpeg envoie le son du direct directement à Whisper (`large-v3-turbo`, plus rapide), découpé en mémoire aux pauses de parole (5 s au plus). Chaque phrase s'affiche **5 à 8 s après son début** ; `--alert` joue le son et marque la ligne quand un mot de la liste `[alert]` est prononcé. Rien n'est enregistré : pour le corpus d'analyse, gardez `capture` + `transcribe` (meilleure qualité, avec contexte). Le flux Dailymotion a lui-même quelques dizaines de secondes de retard sur la diffusion TV.
+Une seule commande, indépendante de `capture` / `transcribe` : ffmpeg envoie le son du direct directement à Whisper (`large-v3-turbo`, plus rapide), découpé en mémoire aux pauses de parole (5 s au plus). Chaque phrase s'affiche **5 à 8 s après son début** ; `--alert` joue le son et marque la ligne quand un mot de la liste `[alert]` est prononcé. `--speak` lit chaque phrase à voix haute avec la voix française de Windows (Hortense, hors ligne), sans l'heure ni le marqueur d'alerte ; si la lecture prend du retard, les phrases les plus anciennes sont sautées pour rester au direct (débit réglable : `RATE` dans `speech.py`). Rien n'est enregistré : pour le corpus d'analyse, gardez `capture` + `transcribe` (meilleure qualité, avec contexte). Le flux Dailymotion a lui-même quelques dizaines de secondes de retard sur la diffusion TV.
 
 ### Suivre le texte transcrit par `transcribe --watch`
 
