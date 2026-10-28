@@ -31,7 +31,7 @@ Ce projet s'arrête à la production des transcriptions horodatées. L'analyse e
 - **Trous silencieux** : une capture qui s'arrête sans que ce soit visible nulle part.
 - **Audio perdu avant transcription** : un fichier audio ne doit jamais être supprimé tant que sa transcription n'est pas écrite de façon complète sur disque.
 - **Fichier transcrit à moitié** : la transcription ne doit jamais traiter le fichier audio en cours d'écriture par la capture.
-- **Contournement de protections anti-bot** : ne pas chercher à contourner Cloudflare ou des protections similaires (voir « Source du flux »).
+- **Contournement de protections anti-bot** : ne pas chercher à contourner Cloudflare sur cnews.fr. *Exception décidée explicitement par l'utilisateur le 2026-10-28 : yt-dlp peut utiliser son imitation de navigateur (curl_cffi) pour résoudre le flux Dailymotion (voir « Résultats du test du flux »).*
 
 ## Contraintes
 
@@ -53,6 +53,15 @@ Ce projet s'arrête à la production des transcriptions horodatées. L'analyse e
 - Les métadonnées du lecteur Dailymotion renvoient une URL HLS signée (`cdndirector.dailymotion.com/...m3u8?sec=...`) qui **expire** ; un `curl` direct sur cette URL a renvoyé 403.
 - **Décision** : résoudre l'URL du flux avec **yt-dlp** (extracteur Dailymotion standard), et la re-résoudre à chaque (re)démarrage de la capture.
 - **Première étape de la construction** : vérifier que yt-dlp + ffmpeg récupèrent ~30 s d'audio de `x3b68jn`. Si ça échoue, s'arrêter et en parler à l'utilisateur avant toute autre piste — en particulier ne pas tenter de se faire passer pour un navigateur pour franchir une protection.
+
+## Résultats du test du flux (2026-10-28)
+
+- yt-dlp 2026.10.26 seul échoue sur `x3b68jn` et `x5idxxp` : la playlist m3u8 est refusée et l'extracteur Dailymotion exige l'imitation de navigateur. Après présentation des alternatives (enregistrer un vrai navigateur, clé TNT), **l'utilisateur a choisi d'autoriser cette imitation** : dépendance `yt-dlp[curl-cffi]`.
+- Formats proposés : des **pistes audio seules** (`hls-group_A1-und`, `hls-group_A1-backup-fre`, `hls-group_A2-und`, `hls-group_A2-backup-fre`) et des pistes vidéo seules de 475k à 7811k. `bestaudio/worst` sélectionne `hls-group_A2-backup-fre` (HLS fMP4, `m3u8_native`). **On ne télécharge donc que l'audio** : ~131 kbit/s, soit ~1,4 Go/jour de réseau comme de disque en attente.
+- Audio : AAC, 44,1 kHz, stéréo, ~131 kbit/s. Copié sans ré-encodage en ADTS, il est lisible (vérifié par l'utilisateur à l'écoute, et par ffprobe).
+- L'URL renvoyée par yt-dlp est lue directement par ffmpeg (avec ou sans les en-têtes fournis par yt-dlp) : seule la résolution du flux a besoin de l'imitation.
+- `segments.csv` produit par le muxer `segment` : noms de base, premier début à `0.000000`, découpage calé sur l'horloge (premier segment de 9,0 s pour `-segment_time 10`). Exemple : `seg_00000.aac,0.000000,9.009342`.
+- ffmpeg affiche des avertissements « Found duplicated MOOV Atom. Skipped it » sans conséquence ; ils vont dans `ffmpeg.log`.
 
 ## Conception
 

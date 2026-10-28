@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Windows 11, PowerShell ; Python 3.12 dans `.venv` à la racine du projet ; paquet `src/cnews_tts`, tests dans `tests/`.
-- Source : Dailymotion `x3b68jn` via yt-dlp, sélecteur de format `bestaudio/worst`. **Ne jamais** charger cnews.fr ni contourner une protection anti-bot (pas d'User-Agent forgé à la main) : seuls les en-têtes fournis par yt-dlp sont transmis à ffmpeg.
+- Source : Dailymotion `x3b68jn` via yt-dlp, sélecteur de format `bestaudio/worst`. **Ne jamais** charger cnews.fr ni forger d'en-têtes à la main : seuls les en-têtes fournis par yt-dlp sont transmis à ffmpeg. L'imitation de navigateur de yt-dlp (`yt-dlp[curl-cffi]`) est autorisée par décision de l'utilisateur (voir la spec).
 - Segments de **600 s**, calés sur l'horloge (`-segment_atclocktime 1`), audio copié sans ré-encodage (`-c:a copy`, ADTS `.aac`).
 - Noms de fichiers et de runs en **UTC** : `YYYYMMDDTHHMMSSZ` (ex. `20261028T180000Z.aac`).
 - Horodatages de sortie : ISO 8601 à la milliseconde avec décalage, fuseau `Europe/Paris` (ex. `2026-10-28T19:00:03.120+01:00`). Le paquet `tzdata` est obligatoire sous Windows.
@@ -119,7 +119,7 @@ git commit -m "docs: conception, plan et résultats du test du flux CNews"
 
 - [ ] **Step 1 : `pyproject.toml` et `config.toml`**
 
-`pyproject.toml` : paquet `cnews_tts` en layout `src/`, `requires-python = ">=3.12"`, dépendances `yt-dlp`, `faster-whisper`, `tzdata`, `nvidia-cublas-cu12`, `nvidia-cudnn-cu12>=9,<10` ; extra `dev = ["pytest"]` ; `[tool.pytest.ini_options] testpaths = ["tests"]`.
+`pyproject.toml` : paquet `cnews_tts` en layout `src/`, `requires-python = ">=3.12"`, dépendances `yt-dlp[curl-cffi]`, `faster-whisper`, `tzdata`, `nvidia-cublas-cu12`, `nvidia-cudnn-cu12>=9,<10` ; extra `dev = ["pytest"]` ; `[tool.pytest.ini_options] testpaths = ["tests"]`.
 
 `config.toml` (valeurs exactes) :
 ```toml
