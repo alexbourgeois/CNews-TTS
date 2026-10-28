@@ -1,0 +1,22 @@
+[capture]
+video_id = "x3b68jn"          # Live CNEWS (secours : "x5idxxp")
+format = "bestaudio/worst"    # audio seul si dispo, sinon la variante la plus légère
+segment_minutes = 10
+stall_timeout_s = 120
+drift_tolerance_s = 120
+
+[paths]
+data_dir = "data"
+
+[transcribe]
+model = "large-v3"
+device = "cuda"
+compute_type = "float16"
+language = "fr"
+timezone = "Europe/Paris"
+hallucination_blacklist = [
+  "Sous-titrage ST' 501",
+  "Sous-titres réalisés par la communauté d'Amara.org",
+  "Sous-titrage Société Radio-Canada",
+  "Merci d'avoir regardé cette vidéo",
+]
