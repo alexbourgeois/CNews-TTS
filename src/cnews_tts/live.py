@@ -20,6 +20,7 @@ from cnews_tts.condense import Condenser
 from cnews_tts.config import Config
 from cnews_tts.hallucinations import is_hallucination
 from cnews_tts.media import build_live_cmd, stop_ffmpeg
+from cnews_tts.sentiment import colorize, load_lexicon
 from cnews_tts.speech import Speaker, ensure_voice
 from cnews_tts.stream import StreamError, resolve_stream
 from cnews_tts.transcribe import load_model
@@ -61,7 +62,7 @@ def _read_blocks(pipe, q: queue.Queue) -> None:
 
 
 def _transcribe_stream(proc: subprocess.Popen, model, cfg: Config, keywords: tuple[str, ...], speaker=None,
-                       condense=None) -> None:
+                       condense=None, lexicon: dict[str, float] | None = None) -> None:
     from faster_whisper.vad import VadOptions, get_speech_timestamps
 
     vad = VadOptions(min_silence_duration_ms=200, speech_pad_ms=100)
@@ -103,13 +104,15 @@ def _transcribe_stream(proc: subprocess.Popen, model, cfg: Config, keywords: tup
             log.info("alerte : %s", ", ".join(hits))
         elif not shown:
             continue
-        print(f"{start:%H:%M:%S}  {shown}" + (f"   <<< {', '.join(hits)}" if hits else ""), flush=True)
+        painted = colorize(shown, lexicon) if lexicon else shown
+        print(f"{start:%H:%M:%S}  {painted}" + (f"   <<< {', '.join(hits)}" if hits else ""), flush=True)
         if speaker and shown:
             speaker.say(shown)  # le texte seul, sans l'heure ni le marqueur d'alerte
         log.info("retard %.1f s — %s", (datetime.now(tz) - start).total_seconds(), text[:80])
 
 
-def run_live(cfg: Config, keywords: tuple[str, ...] = (), speak: bool = False, condense: bool = False) -> None:
+def run_live(cfg: Config, keywords: tuple[str, ...] = (), speak: bool = False, condense: bool = False,
+             color: bool = False) -> None:
     """Tourne jusqu'à Ctrl+C ; se reconnecte si le flux coupe."""
     sys.stdout.reconfigure(errors="replace")
     print(f"Chargement du modèle {cfg.live_model}…", flush=True)
@@ -119,6 +122,12 @@ def run_live(cfg: Config, keywords: tuple[str, ...] = (), speak: bool = False, c
         print(f"Chargement de la voix {cfg.speech_voice}…", flush=True)
         speaker = Speaker(ensure_voice(cfg.voices_dir, cfg.speech_voice))
     condenser = Condenser() if condense else None
+    lexicon = None
+    if color:
+        import colorama
+
+        colorama.just_fix_windows_console()  # couleurs aussi dans l'ancienne console Windows
+        lexicon = load_lexicon()
     cfg.logs_dir.mkdir(parents=True, exist_ok=True)
     while True:
         try:
@@ -133,7 +142,7 @@ def run_live(cfg: Config, keywords: tuple[str, ...] = (), speak: bool = False, c
             proc = subprocess.Popen(build_live_cmd(stream, SR), stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE, stderr=ffmpeg_log)
             try:
-                _transcribe_stream(proc, model, cfg, keywords, speaker, condenser)
+                _transcribe_stream(proc, model, cfg, keywords, speaker, condenser, lexicon)
             except queue.Empty:
                 log.warning("Plus de son depuis %d s", STALL_TIMEOUT_S)
             finally:

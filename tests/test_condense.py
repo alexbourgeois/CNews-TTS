@@ -20,3 +20,7 @@ def test_keeps_numbers_and_proper_names(condense):
 
 def test_nothing_left(condense):
     assert condense("Et alors, vous, vous y êtes ?") == ""
+
+
+def test_keeps_hyphenated_words_whole(condense):
+    assert condense("Les centres-villes se vident le week-end.") == "centres-villes vider week-end"
