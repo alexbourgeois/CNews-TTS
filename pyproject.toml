@@ -10,7 +10,8 @@ requires-python = ">=3.12"
 dependencies = [
     "yt-dlp[curl-cffi]",
     "faster-whisper",
-    "comtypes; sys_platform == 'win32'",  # voix Windows (SAPI) pour live --speak
+    "piper-tts",  # voix neuronale française pour live --speak
+    "sounddevice",
     "av<19",  # faster-whisper 1.2.1 passe metadata_errors à av.open, supprimé dans PyAV 19
     "tzdata",
     "nvidia-cublas-cu12",

@@ -22,9 +22,12 @@ hallucination_blacklist = [
 ]
 
 [alert]
-# Son joué par « follow --alert » quand un de ces mots est prononcé (accents et majuscules ignorés).
+# Son joué par « live --alert » / « follow --alert » quand un de ces mots est prononcé (accents et majuscules ignorés).
 # Un mot seul couvre tous les mots qui commencent par lui (« immigr » : immigration, immigrés…) ;
 # une expression doit apparaître telle quelle.
+# Votre propre son (.wav) : décommentez et indiquez le chemin (relatif à ce fichier).
+# Sans cela : son d'alerte de Windows.
+# sound = "alerte.wav"
 keywords = [
   "Marine", "Le pen", "immigr", "émigr", "migr", "remigr", "clandestin", "sans-papiers", "étranger",
   "réfugié", "asile", "OQTF", "regroupement familial", "titre de séjour",
@@ -35,3 +38,8 @@ keywords = [
 [live]
 # Modèle de la commande « live » : plus rapide que large-v3, pour quelques secondes de retard seulement.
 model = "large-v3-turbo"
+
+[speech]
+# Voix de « live --speak » (Piper, hors ligne, téléchargée dans data/voices/ au premier lancement).
+# Autres voix françaises : fr_FR-upmc-medium, fr_FR-tom-medium, fr_FR-gilles-low.
+voice = "fr_FR-siwis-medium"

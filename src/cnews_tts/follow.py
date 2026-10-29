@@ -51,7 +51,8 @@ class TranscriptFollower:
         return new
 
 
-def run_follow(transcripts_dir: Path, backlog: int = 10, poll_s: float = 2.0, keywords: tuple[str, ...] = ()) -> None:
+def run_follow(transcripts_dir: Path, backlog: int = 10, poll_s: float = 2.0, keywords: tuple[str, ...] = (),
+               sound: Path | None = None) -> None:
     """Tourne jusqu'à Ctrl+C. Avec des mots-clés : lignes marquées et son joué quand l'un est prononcé."""
     sys.stdout.reconfigure(errors="replace")
     follower = TranscriptFollower(transcripts_dir, backlog)
@@ -64,5 +65,5 @@ def run_follow(transcripts_dir: Path, backlog: int = 10, poll_s: float = 2.0, ke
                 line = f"{line}   <<< {', '.join(hits)}"
             print(line, flush=True)
         if alert:
-            play_alert()
+            play_alert(sound)
         time.sleep(poll_s)

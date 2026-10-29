@@ -21,6 +21,12 @@ class Config:
     hallucination_blacklist: tuple[str, ...]
     alert_keywords: tuple[str, ...] = ()
     live_model: str = "large-v3-turbo"
+    alert_sound: Path | None = None
+    speech_voice: str = "fr_FR-siwis-medium"
+
+    @property
+    def voices_dir(self) -> Path:
+        return self.data_dir / "voices"
 
     @property
     def work_dir(self) -> Path:
@@ -48,6 +54,7 @@ def load_config(path: Path) -> Config:
     with path.open("rb") as f:
         raw = tomllib.load(f)
     capture, paths, transcribe = raw["capture"], raw["paths"], raw["transcribe"]
+    sound = raw.get("alert", {}).get("sound")
     return Config(
         video_id=capture["video_id"],
         format_selector=capture["format"],
@@ -63,4 +70,6 @@ def load_config(path: Path) -> Config:
         hallucination_blacklist=tuple(transcribe["hallucination_blacklist"]),
         alert_keywords=tuple(raw.get("alert", {}).get("keywords", [])),
         live_model=raw.get("live", {}).get("model", "large-v3-turbo"),
+        alert_sound=path.parent / sound if sound else None,
+        speech_voice=raw.get("speech", {}).get("voice", "fr_FR-siwis-medium"),
     )

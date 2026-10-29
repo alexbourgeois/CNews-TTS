@@ -19,7 +19,7 @@ from cnews_tts.alerts import find_keywords, play_alert
 from cnews_tts.config import Config
 from cnews_tts.hallucinations import is_hallucination
 from cnews_tts.media import build_live_cmd, stop_ffmpeg
-from cnews_tts.speech import Speaker
+from cnews_tts.speech import Speaker, ensure_voice
 from cnews_tts.stream import StreamError, resolve_stream
 from cnews_tts.transcribe import load_model
 
@@ -98,7 +98,8 @@ def _transcribe_stream(proc: subprocess.Popen, model, cfg: Config, keywords: tup
         hits = find_keywords(text, keywords)
         if hits:
             line += f"   <<< {', '.join(hits)}"
-            play_alert()
+            play_alert(cfg.alert_sound)
+            log.info("alerte : %s", ", ".join(hits))
         print(line, flush=True)
         if speaker:
             speaker.say(text)  # le texte seul, sans l'heure ni le marqueur d'alerte
@@ -110,7 +111,10 @@ def run_live(cfg: Config, keywords: tuple[str, ...] = (), speak: bool = False) -
     sys.stdout.reconfigure(errors="replace")
     print(f"Chargement du modèle {cfg.live_model}…", flush=True)
     model = load_model(cfg, cfg.live_model)
-    speaker = Speaker() if speak else None
+    speaker = None
+    if speak:
+        print(f"Chargement de la voix {cfg.speech_voice}…", flush=True)
+        speaker = Speaker(ensure_voice(cfg.voices_dir, cfg.speech_voice))
     cfg.logs_dir.mkdir(parents=True, exist_ok=True)
     while True:
         try:

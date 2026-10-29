@@ -59,7 +59,7 @@ Le modèle reste chargé sur la carte graphique (~3-4 Go de mémoire vidéo) et 
 .\.venv\Scripts\python -m cnews_tts live --alert
 ```
 
-Une seule commande, indépendante de `capture` / `transcribe` : ffmpeg envoie le son du direct directement à Whisper (`large-v3-turbo`, plus rapide), découpé en mémoire aux pauses de parole (5 s au plus). Chaque phrase s'affiche **5 à 8 s après son début** ; `--alert` joue le son et marque la ligne quand un mot de la liste `[alert]` est prononcé. `--speak` lit chaque phrase à voix haute avec la voix française de Windows (Hortense, hors ligne), sans l'heure ni le marqueur d'alerte ; si la lecture prend du retard, les phrases les plus anciennes sont sautées pour rester au direct (débit réglable : `RATE` dans `speech.py`). Rien n'est enregistré : pour le corpus d'analyse, gardez `capture` + `transcribe` (meilleure qualité, avec contexte). Le flux Dailymotion a lui-même quelques dizaines de secondes de retard sur la diffusion TV.
+Une seule commande, indépendante de `capture` / `transcribe` : ffmpeg envoie le son du direct directement à Whisper (`large-v3-turbo`, plus rapide), découpé en mémoire aux pauses de parole (5 s au plus). Chaque phrase s'affiche **5 à 8 s après son début** ; `--alert` joue le son et marque la ligne quand un mot de la liste `[alert]` est prononcé. `--speak` lit chaque phrase à voix haute, sans l'heure ni le marqueur d'alerte, avec une voix neuronale française (Piper, hors ligne, calculée sur le processeur ~0,2 s par phrase) ; la voix (~60 Mo) est téléchargée dans `data/voices/` au premier lancement. Si la lecture prend du retard, les phrases les plus anciennes sont sautées pour rester au direct. Débit : `LENGTH_SCALE` dans `speech.py` (< 1 plus rapide) ; autre voix : `[speech] voice` dans `config.toml`. Rien n'est enregistré : pour le corpus d'analyse, gardez `capture` + `transcribe` (meilleure qualité, avec contexte). Le flux Dailymotion a lui-même quelques dizaines de secondes de retard sur la diffusion TV.
 
 ### Suivre le texte transcrit par `transcribe --watch`
 
@@ -76,7 +76,7 @@ Affiche les 10 dernières phrases (`--lines N` pour en voir plus), puis chaque n
 19:39:15  Merci beaucoup Didier von Kovlert, écrivain, prix Goncourt…
 ```
 
-**Alerte sonore** : `follow --alert` joue le son d'alerte de Windows et marque la ligne (`<<< immigr`) quand un mot lié à l'immigration est prononcé. La liste est dans la section `[alert]` de `config.toml` (accents et majuscules ignorés ; `immigr` couvre immigration, immigrés…).
+**Alerte sonore** : `follow --alert` (comme `live --alert`) joue un son et marque la ligne (`<<< immigr`) quand un mot lié à l'immigration est prononcé. La liste est dans la section `[alert]` de `config.toml` (accents et majuscules ignorés ; `immigr` couvre immigration, immigrés…). Pour votre propre son, indiquez un fichier `.wav` dans `sound` de cette section (chemin relatif à `config.toml`, ex. `sound = "alerte.wav"`) ; sinon c'est le son d'alerte de Windows.
 
 Le texte arrive par blocs d'une minute, 1 à 2 minutes après la diffusion. Pour moins de fichiers (et moins de coupures, voir plus bas), augmentez `segment_minutes` dans `config.toml` : le retard augmente d'autant.
 
@@ -138,6 +138,8 @@ print(mots.groupby("jour")["mot"].value_counts().groupby(level=0).head(20))
 | `transcribe.model` | `large-v3` ; `large-v3-turbo` si la vitesse manque |
 | `transcribe.device` / `compute_type` | `cuda` / `float16` ; sans carte NVIDIA : `cpu` / `int8` avec un modèle plus petit (`small`, `medium`), nettement moins précis et sans doute trop lent pour suivre le direct |
 | `transcribe.hallucination_blacklist` | Phrases retirées de la sortie |
+| `alert.keywords` / `alert.sound` | Mots déclenchant l'alerte ; son `.wav` joué (facultatif) |
+| `speech.voice` | Voix Piper de `live --speak` (`fr_FR-siwis-medium`) |
 
 ## Fichiers
 
@@ -147,6 +149,7 @@ data/
   audio/               audio terminé, en attente de transcription
   transcripts/         une transcription par jour
   coverage.csv         intervalles enregistrés
+  voices/              voix de live --speak
   logs/                capture.log, transcribe.log, ffmpeg.log
 ```
 

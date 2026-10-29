@@ -1,5 +1,6 @@
 """Alerte sonore quand un mot-clé est prononcé."""
 
+from pathlib import Path
 from typing import Iterable
 
 from cnews_tts.hallucinations import normalize
@@ -22,10 +23,14 @@ def find_keywords(text: str, keywords: Iterable[str]) -> list[str]:
     return hits
 
 
-def play_alert() -> None:
+def play_alert(sound: Path | None = None) -> None:
+    """Joue le .wav donné, ou le son d'alerte de Windows ; sans attendre la fin du son."""
     try:
         import winsound
 
-        winsound.PlaySound("SystemExclamation", winsound.SND_ALIAS | winsound.SND_ASYNC)
+        if sound:
+            winsound.PlaySound(str(sound), winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT)
+        else:
+            winsound.PlaySound("SystemExclamation", winsound.SND_ALIAS | winsound.SND_ASYNC)
     except Exception:
         print("\a", end="", flush=True)

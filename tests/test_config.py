@@ -18,3 +18,13 @@ def test_load_repo_config():
     assert "Sous-titrage ST' 501" in cfg.hallucination_blacklist
     assert "immigr" in cfg.alert_keywords
     assert cfg.live_model == "large-v3-turbo"
+    assert cfg.alert_sound is None
+    assert cfg.speech_voice == "fr_FR-siwis-medium"
+    assert cfg.voices_dir == REPO / "data" / "voices"
+
+
+def test_alert_sound_is_relative_to_config(tmp_path):
+    text = (REPO / "config.toml").read_text(encoding="utf-8")
+    (tmp_path / "config.toml").write_text(text.replace("[alert]\n", '[alert]\nsound = "sons/alerte.wav"\n'),
+                                          encoding="utf-8")
+    assert load_config(tmp_path / "config.toml").alert_sound == tmp_path / "sons" / "alerte.wav"

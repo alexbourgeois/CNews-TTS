@@ -41,7 +41,7 @@ def main(argv: list[str] | None = None) -> int:
                           help="jouer un son quand un mot de la liste [alert] de config.toml est prononcé")
 
     p_live = sub.add_parser("live", help="transcrire le direct avec quelques secondes de retard (Ctrl+C pour arrêter)")
-    p_live.add_argument("--speak", action="store_true", help="lire le texte à voix haute (voix française de Windows)")
+    p_live.add_argument("--speak", action="store_true", help="lire le texte à voix haute (voix française Piper)")
     p_live.add_argument("--alert", action="store_true",
                         help="jouer un son quand un mot de la liste [alert] de config.toml est prononcé")
 
@@ -50,6 +50,8 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     cfg = load_config(args.config)
+    if getattr(args, "alert", False) and cfg.alert_sound and not cfg.alert_sound.is_file():
+        parser.error(f"son d'alerte introuvable : {cfg.alert_sound} (clé sound de [alert] dans config.toml)")
 
     if args.command == "capture":
         from cnews_tts.capture import run_capture
@@ -75,7 +77,8 @@ def main(argv: list[str] | None = None) -> int:
         from cnews_tts.follow import run_follow
 
         try:
-            run_follow(cfg.transcripts_dir, args.lines, keywords=cfg.alert_keywords if args.alert else ())
+            run_follow(cfg.transcripts_dir, args.lines, keywords=cfg.alert_keywords if args.alert else (),
+                       sound=cfg.alert_sound)
         except KeyboardInterrupt:
             pass
     elif args.command == "live":
