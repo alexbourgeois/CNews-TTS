@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 import numpy as np
 
 from cnews_tts.alerts import find_keywords, play_alert
+from cnews_tts.condense import Condenser
 from cnews_tts.config import Config
 from cnews_tts.hallucinations import is_hallucination
 from cnews_tts.media import build_live_cmd, stop_ffmpeg
@@ -59,7 +60,8 @@ def _read_blocks(pipe, q: queue.Queue) -> None:
     q.put(None)
 
 
-def _transcribe_stream(proc: subprocess.Popen, model, cfg: Config, keywords: tuple[str, ...], speaker=None) -> None:
+def _transcribe_stream(proc: subprocess.Popen, model, cfg: Config, keywords: tuple[str, ...], speaker=None,
+                       condense=None) -> None:
     from faster_whisper.vad import VadOptions, get_speech_timestamps
 
     vad = VadOptions(min_silence_duration_ms=200, speech_pad_ms=100)
@@ -94,19 +96,20 @@ def _transcribe_stream(proc: subprocess.Popen, model, cfg: Config, keywords: tup
         if not text:
             continue
         prompt = text[-200:]
-        line = f"{start:%H:%M:%S}  {text}"
-        hits = find_keywords(text, keywords)
+        shown = condense(text) if condense else text
+        hits = find_keywords(text, keywords)  # sur la phrase entière : « titre de séjour » garde son « de »
         if hits:
-            line += f"   <<< {', '.join(hits)}"
             play_alert(cfg.alert_sound)
             log.info("alerte : %s", ", ".join(hits))
-        print(line, flush=True)
-        if speaker:
-            speaker.say(text)  # le texte seul, sans l'heure ni le marqueur d'alerte
+        elif not shown:
+            continue
+        print(f"{start:%H:%M:%S}  {shown}" + (f"   <<< {', '.join(hits)}" if hits else ""), flush=True)
+        if speaker and shown:
+            speaker.say(shown)  # le texte seul, sans l'heure ni le marqueur d'alerte
         log.info("retard %.1f s — %s", (datetime.now(tz) - start).total_seconds(), text[:80])
 
 
-def run_live(cfg: Config, keywords: tuple[str, ...] = (), speak: bool = False) -> None:
+def run_live(cfg: Config, keywords: tuple[str, ...] = (), speak: bool = False, condense: bool = False) -> None:
     """Tourne jusqu'à Ctrl+C ; se reconnecte si le flux coupe."""
     sys.stdout.reconfigure(errors="replace")
     print(f"Chargement du modèle {cfg.live_model}…", flush=True)
@@ -115,6 +118,7 @@ def run_live(cfg: Config, keywords: tuple[str, ...] = (), speak: bool = False) -
     if speak:
         print(f"Chargement de la voix {cfg.speech_voice}…", flush=True)
         speaker = Speaker(ensure_voice(cfg.voices_dir, cfg.speech_voice))
+    condenser = Condenser() if condense else None
     cfg.logs_dir.mkdir(parents=True, exist_ok=True)
     while True:
         try:
@@ -129,7 +133,7 @@ def run_live(cfg: Config, keywords: tuple[str, ...] = (), speak: bool = False) -
             proc = subprocess.Popen(build_live_cmd(stream, SR), stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE, stderr=ffmpeg_log)
             try:
-                _transcribe_stream(proc, model, cfg, keywords, speaker)
+                _transcribe_stream(proc, model, cfg, keywords, speaker, condenser)
             except queue.Empty:
                 log.warning("Plus de son depuis %d s", STALL_TIMEOUT_S)
             finally:

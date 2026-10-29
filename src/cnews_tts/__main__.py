@@ -42,6 +42,8 @@ def main(argv: list[str] | None = None) -> int:
 
     p_live = sub.add_parser("live", help="transcrire le direct avec quelques secondes de retard (Ctrl+C pour arrêter)")
     p_live.add_argument("--speak", action="store_true", help="lire le texte à voix haute (voix française Piper)")
+    p_live.add_argument("--condense", action="store_true",
+                        help="n'afficher (et ne lire) que les mots-clés : noms, verbes à l'infinitif, adjectifs, nombres")
     p_live.add_argument("--alert", action="store_true",
                         help="jouer un son quand un mot de la liste [alert] de config.toml est prononcé")
 
@@ -86,7 +88,7 @@ def main(argv: list[str] | None = None) -> int:
 
         _setup_logging(cfg.logs_dir / "live.log", console=False)
         try:
-            run_live(cfg, cfg.alert_keywords if args.alert else (), speak=args.speak)
+            run_live(cfg, cfg.alert_keywords if args.alert else (), speak=args.speak, condense=args.condense)
         except KeyboardInterrupt:
             pass
     elif args.command == "coverage":
