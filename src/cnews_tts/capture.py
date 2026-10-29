@@ -86,9 +86,9 @@ def _watch(proc: subprocess.Popen, run_dir: Path, cfg: Config) -> tuple[str, int
 def _capture_once(cfg: Config) -> bool:
     """Un run de ffmpeg, de la résolution du flux à la promotion du dernier segment. Vrai si productif."""
     try:
-        stream = resolve_stream(cfg.video_id, cfg.format_selector)
+        stream = resolve_stream(cfg.stream_url, cfg.format_selector)
     except StreamError as e:
-        log.error("Impossible de résoudre le flux %s : %s", cfg.video_id, e)
+        log.error("Impossible de résoudre le flux %s : %s", cfg.stream_url, e)
         return False
 
     run_dir = cfg.work_dir / format_stamp(utc_now())

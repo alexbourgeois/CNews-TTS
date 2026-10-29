@@ -193,7 +193,8 @@ def _draw_game(pygame, screen, font, game, now: float, banner: str) -> None:
 
 
 def run_window(words: queue.Queue, lexicon: dict[str, float], lifetime_s: float, stop: threading.Event,
-               size: tuple[int, int] = (1000, 700), game=None, banner: str = "") -> None:
+               size: tuple[int, int] = (1000, 700), game=None, banner: str = "",
+               title: str = "Mots du direct") -> None:
     """Boucle de la fenêtre (fil principal), jusqu'à sa fermeture ou stop. words : textes à faire tomber.
 
     Avec game, les joueurs effacent les mots depuis le serveur web : physique et dessin se font sous game.lock.
@@ -203,7 +204,7 @@ def run_window(words: queue.Queue, lexicon: dict[str, float], lifetime_s: float,
 
     pygame.init()
     screen = pygame.display.set_mode(size, pygame.RESIZABLE)
-    pygame.display.set_caption("CNews — mots du direct")
+    pygame.display.set_caption(title)
     font = pygame.font.SysFont("segoeui,arial", 26, bold=True)
     small = pygame.font.SysFont("segoeui,arial", 20, bold=True)
     clock = pygame.time.Clock()

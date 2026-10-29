@@ -157,7 +157,8 @@ def run_live(cfg: Config, keywords: tuple[str, ...] = (), speak: bool = False, c
     worker = threading.Thread(target=_live_loop, args=(*args, words, stop), daemon=True)
     worker.start()
     try:
-        run_window(words, load_lexicon(), cfg.window_lifetime_s, stop, game=party, banner=banner)  # fil principal
+        run_window(words, load_lexicon(), cfg.window_lifetime_s, stop, game=party, banner=banner,
+                   title=f"{cfg.source} — mots du direct")  # fil principal
     finally:
         stop.set()
         if server:
@@ -170,7 +171,7 @@ def _live_loop(model, cfg: Config, keywords, speaker, condenser, lexicon, sink: 
     try:
         while not stop.is_set():
             try:
-                stream = resolve_stream(cfg.video_id, cfg.format_selector)
+                stream = resolve_stream(cfg.stream_url, cfg.format_selector)
             except StreamError as e:
                 log.error("Impossible de résoudre le flux : %s", e)
                 print("Flux indisponible, nouvel essai dans 10 s…", flush=True)

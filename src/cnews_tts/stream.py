@@ -1,4 +1,4 @@
-"""Résolution de l'URL HLS du direct Dailymotion avec yt-dlp."""
+"""Résolution de l'URL HLS d'un direct (Dailymotion, france.tv…) avec yt-dlp."""
 
 from dataclasses import dataclass
 
@@ -21,11 +21,11 @@ def stream_info_from_ytdlp(info: dict) -> StreamInfo:
     return StreamInfo(info["url"], dict(info.get("http_headers", {})))
 
 
-def resolve_stream(video_id: str, format_selector: str) -> StreamInfo:
+def resolve_stream(page_url: str, format_selector: str) -> StreamInfo:
     opts = {"format": format_selector, "quiet": True, "no_warnings": True}
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
-            info = ydl.extract_info(f"https://www.dailymotion.com/video/{video_id}", download=False)
+            info = ydl.extract_info(page_url, download=False)
     except Exception as e:
         raise StreamError(str(e)) from e
     return stream_info_from_ytdlp(info)

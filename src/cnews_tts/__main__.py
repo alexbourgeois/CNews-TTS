@@ -26,21 +26,25 @@ def _setup_logging(log_file: Path, console: bool = True) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="cnews_tts", description="Capture et transcription du direct CNews.")
+    parser = argparse.ArgumentParser(prog="cnews_tts", description="Capture et transcription d'un direct TV.")
     parser.add_argument("--config", type=Path, default=Path("config.toml"), help="fichier de réglages")
+    source_help = "direct à utiliser : nom d'une section [sources.<nom>] de config.toml (ex. cnews, france4)"
+    parser.add_argument("--source", help=source_help)
+    common = argparse.ArgumentParser(add_help=False)  # --source accepté aussi après la commande
+    common.add_argument("--source", default=argparse.SUPPRESS, help=source_help)
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("capture", help="enregistrer le direct en continu (Ctrl+C pour arrêter)")
-    p_tr = sub.add_parser("transcribe", help="transcrire les fichiers audio en attente, puis s'arrêter")
+    sub.add_parser("capture", parents=[common], help="enregistrer le direct en continu (Ctrl+C pour arrêter)")
+    p_tr = sub.add_parser("transcribe", parents=[common], help="transcrire les fichiers audio en attente, puis s'arrêter")
     p_tr.add_argument("--watch", action="store_true",
                       help="rester ouvert et transcrire chaque fichier dès qu'il est terminé (Ctrl+C pour arrêter)")
 
-    p_follow = sub.add_parser("follow", help="afficher le texte au fur et à mesure (Ctrl+C pour arrêter)")
+    p_follow = sub.add_parser("follow", parents=[common], help="afficher le texte au fur et à mesure (Ctrl+C pour arrêter)")
     p_follow.add_argument("--lines", type=int, default=10, help="nombre de phrases déjà transcrites à afficher")
     p_follow.add_argument("--alert", action="store_true",
                           help="jouer un son quand un mot de la liste [alert] de config.toml est prononcé")
 
-    p_live = sub.add_parser("live", help="transcrire le direct avec quelques secondes de retard (Ctrl+C pour arrêter)")
+    p_live = sub.add_parser("live", parents=[common], help="transcrire le direct avec quelques secondes de retard (Ctrl+C pour arrêter)")
     p_live.add_argument("--speak", action="store_true", help="lire le texte à voix haute (voix française Piper)")
     p_live.add_argument("--condense", action="store_true",
                         help="n'afficher (et ne lire) que les mots-clés : noms, verbes à l'infinitif, adjectifs, nombres")
@@ -54,11 +58,14 @@ def main(argv: list[str] | None = None) -> int:
     p_live.add_argument("--alert", action="store_true",
                         help="jouer un son quand un mot de la liste [alert] de config.toml est prononcé")
 
-    p_cov = sub.add_parser("coverage", help="afficher les périodes enregistrées et les trous")
+    p_cov = sub.add_parser("coverage", parents=[common], help="afficher les périodes enregistrées et les trous")
     p_cov.add_argument("--since", help="date de début AAAA-MM-JJ (heure locale)")
 
     args = parser.parse_args(argv)
-    cfg = load_config(args.config)
+    try:
+        cfg = load_config(args.config, args.source)
+    except ValueError as e:
+        parser.error(str(e))
     if getattr(args, "alert", False) and cfg.alert_sound and not cfg.alert_sound.is_file():
         parser.error(f"son d'alerte introuvable : {cfg.alert_sound} (clé sound de [alert] dans config.toml)")
 

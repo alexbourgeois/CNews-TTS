@@ -1,12 +1,22 @@
 [capture]
-video_id = "x3b68jn"          # Live CNEWS (secours : "x5idxxp")
-format = "bestaudio/worst"    # audio seul si dispo, sinon la variante la plus légère
+source = "cnews"              # source utilisée sans --source (voir [sources.*] plus bas)
 segment_minutes = 1           # fichiers courts : texte disponible ~1-2 min après la diffusion
 stall_timeout_s = 120
 drift_tolerance_s = 30        # en temps normal le flux devance l'horloge d'environ 7 s
 
 [paths]
-data_dir = "data"
+data_dir = "data"             # voix partagées ; chaque source a son dossier (data/<source> par défaut)
+
+# Directs que yt-dlp sait lire : url de la page, choix de la piste, dossier de données.
+# Choisir avec --source <nom> (ex. « python -m cnews_tts live --source france4 »).
+[sources.cnews]
+url = "https://www.dailymotion.com/video/x3b68jn"   # Live CNEWS (secours : …/video/x5idxxp)
+format = "bestaudio/worst"    # audio seul si dispo, sinon la variante la plus légère
+data_dir = "data"             # historique : les données CNews restent à la racine de data/
+
+[sources.france4]
+url = "https://www.france.tv/france-4/direct.html"  # gratuit, sans DRM
+format = "bestaudio[language=fr]/bestaudio"          # piste française (pas l'audiodescription ni la VO)
 
 [transcribe]
 model = "large-v3"
@@ -46,7 +56,7 @@ voice = "fr_FR-siwis-medium"
 
 [window]
 # Fenêtre de « live --window » : durée de vie d'un mot à l'écran, en secondes (il s'efface pendant la dernière).
-lifetime_s = 10
+lifetime_s = 100
 
 [game]
 # « live --game » : port du serveur web ; les joueurs ouvrent http://<adresse de ce PC>:<port> sur le même réseau.
