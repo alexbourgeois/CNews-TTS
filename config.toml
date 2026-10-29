@@ -43,3 +43,7 @@ model = "large-v3-turbo"
 # Voix de « live --speak » (Piper, hors ligne, téléchargée dans data/voices/ au premier lancement).
 # Autres voix françaises : fr_FR-upmc-medium, fr_FR-tom-medium, fr_FR-gilles-low.
 voice = "fr_FR-siwis-medium"
+
+[window]
+# Fenêtre de « live --window » : durée de vie d'un mot à l'écran, en secondes (il s'efface pendant la dernière).
+lifetime_s = 10

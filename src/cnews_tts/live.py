@@ -62,7 +62,9 @@ def _read_blocks(pipe, q: queue.Queue) -> None:
 
 
 def _transcribe_stream(proc: subprocess.Popen, model, cfg: Config, keywords: tuple[str, ...], speaker=None,
-                       condense=None, lexicon: dict[str, float] | None = None) -> None:
+                       condense=None, lexicon: dict[str, float] | None = None, sink: queue.Queue | None = None,
+                       stop: threading.Event | None = None) -> None:
+    stop = stop or threading.Event()
     from faster_whisper.vad import VadOptions, get_speech_timestamps
 
     vad = VadOptions(min_silence_duration_ms=200, speech_pad_ms=100)
@@ -71,7 +73,7 @@ def _transcribe_stream(proc: subprocess.Popen, model, cfg: Config, keywords: tup
     threading.Thread(target=_read_blocks, args=(proc.stdout, q), daemon=True).start()
     buf = np.zeros(0, dtype=np.float32)
     prompt = ""
-    while True:
+    while not stop.is_set():
         blocks = [q.get(timeout=STALL_TIMEOUT_S)]
         while not q.empty():
             blocks.append(q.get_nowait())
@@ -108,12 +110,14 @@ def _transcribe_stream(proc: subprocess.Popen, model, cfg: Config, keywords: tup
         print(f"{start:%H:%M:%S}  {painted}" + (f"   <<< {', '.join(hits)}" if hits else ""), flush=True)
         if speaker and shown:
             speaker.say(shown)  # le texte seul, sans l'heure ni le marqueur d'alerte
+        if sink is not None and shown:
+            sink.put(shown)
         log.info("retard %.1f s — %s", (datetime.now(tz) - start).total_seconds(), text[:80])
 
 
 def run_live(cfg: Config, keywords: tuple[str, ...] = (), speak: bool = False, condense: bool = False,
-             color: bool = False) -> None:
-    """Tourne jusqu'à Ctrl+C ; se reconnecte si le flux coupe."""
+             color: bool = False, window: bool = False) -> None:
+    """Tourne jusqu'à Ctrl+C (ou la fermeture de la fenêtre) ; se reconnecte si le flux coupe."""
     sys.stdout.reconfigure(errors="replace")
     print(f"Chargement du modèle {cfg.live_model}…", flush=True)
     model = load_model(cfg, cfg.live_model)
@@ -129,23 +133,49 @@ def run_live(cfg: Config, keywords: tuple[str, ...] = (), speak: bool = False, c
         colorama.just_fix_windows_console()  # couleurs aussi dans l'ancienne console Windows
         lexicon = load_lexicon()
     cfg.logs_dir.mkdir(parents=True, exist_ok=True)
-    while True:
-        try:
-            stream = resolve_stream(cfg.video_id, cfg.format_selector)
-        except StreamError as e:
-            log.error("Impossible de résoudre le flux : %s", e)
-            print("Flux indisponible, nouvel essai dans 10 s…", flush=True)
-            time.sleep(10)
-            continue
-        print("— connecté au direct —", flush=True)
-        with (cfg.logs_dir / "ffmpeg-live.log").open("ab") as ffmpeg_log:
-            proc = subprocess.Popen(build_live_cmd(stream, SR), stdin=subprocess.PIPE,
-                                    stdout=subprocess.PIPE, stderr=ffmpeg_log)
+    args = (model, cfg, keywords, speaker, condenser, lexicon)
+    if not window:
+        _live_loop(*args, None, threading.Event())
+        return
+
+    from cnews_tts.visual import run_window
+
+    words, stop = queue.Queue(), threading.Event()
+    worker = threading.Thread(target=_live_loop, args=(*args, words, stop), daemon=True)
+    worker.start()
+    try:
+        run_window(words, load_lexicon(), cfg.window_lifetime_s, stop)  # la fenêtre veut le fil principal
+    finally:
+        stop.set()
+        worker.join(timeout=20)
+
+
+def _live_loop(model, cfg: Config, keywords, speaker, condenser, lexicon, sink: queue.Queue | None,
+               stop: threading.Event) -> None:
+    try:
+        while not stop.is_set():
             try:
-                _transcribe_stream(proc, model, cfg, keywords, speaker, condenser, lexicon)
-            except queue.Empty:
-                log.warning("Plus de son depuis %d s", STALL_TIMEOUT_S)
-            finally:
-                stop_ffmpeg(proc)
-        print("— flux interrompu, reconnexion… —", flush=True)
-        time.sleep(5)
+                stream = resolve_stream(cfg.video_id, cfg.format_selector)
+            except StreamError as e:
+                log.error("Impossible de résoudre le flux : %s", e)
+                print("Flux indisponible, nouvel essai dans 10 s…", flush=True)
+                stop.wait(10)
+                continue
+            print("— connecté au direct —", flush=True)
+            with (cfg.logs_dir / "ffmpeg-live.log").open("ab") as ffmpeg_log:
+                proc = subprocess.Popen(build_live_cmd(stream, SR), stdin=subprocess.PIPE,
+                                        stdout=subprocess.PIPE, stderr=ffmpeg_log)
+                try:
+                    _transcribe_stream(proc, model, cfg, keywords, speaker, condenser, lexicon, sink, stop)
+                except queue.Empty:
+                    log.warning("Plus de son depuis %d s", STALL_TIMEOUT_S)
+                finally:
+                    stop_ffmpeg(proc)
+            if not stop.is_set():
+                print("— flux interrompu, reconnexion… —", flush=True)
+                stop.wait(5)
+    except Exception:
+        log.exception("Erreur dans la transcription du direct")
+        raise
+    finally:
+        stop.set()  # avec la fenêtre : elle se ferme aussi

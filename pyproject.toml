@@ -14,6 +14,8 @@ dependencies = [
     "sounddevice",
     "vaderSentiment-fr",  # live --color : charge positive / négative des mots
     "colorama",
+    "pygame",  # live --window : fenêtre des mots
+    "pymunk",  # live --window : physique des blocs
     "spacy>=3.8,<3.9",  # live --condense : nature des mots et infinitifs
     "fr_core_news_md @ https://github.com/explosion/spacy-models/releases/download/fr_core_news_md-3.8.0/fr_core_news_md-3.8.0-py3-none-any.whl",
     "av<19",  # faster-whisper 1.2.1 passe metadata_errors à av.open, supprimé dans PyAV 19

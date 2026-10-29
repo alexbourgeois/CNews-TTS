@@ -23,6 +23,7 @@ class Config:
     live_model: str = "large-v3-turbo"
     alert_sound: Path | None = None
     speech_voice: str = "fr_FR-siwis-medium"
+    window_lifetime_s: float = 10.0
 
     @property
     def voices_dir(self) -> Path:
@@ -72,4 +73,5 @@ def load_config(path: Path) -> Config:
         live_model=raw.get("live", {}).get("model", "large-v3-turbo"),
         alert_sound=path.parent / sound if sound else None,
         speech_voice=raw.get("speech", {}).get("voice", "fr_FR-siwis-medium"),
+        window_lifetime_s=float(raw.get("window", {}).get("lifetime_s", 10)),
     )
