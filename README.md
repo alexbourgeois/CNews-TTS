@@ -8,6 +8,22 @@ Deux commandes indépendantes :
 - **`transcribe`** transcrit tout l'audio en attente puis supprime l'audio transcrit — de temps en temps, ou en continu avec `--watch` ;
 - **`follow`** affiche le texte au fur et à mesure, avec 1 à 2 minutes de retard sur le direct.
 
+## Choisir le direct : `--source`
+
+Toutes les commandes acceptent `--source <nom>`, avant ou après la commande. Les directs sont décrits dans `config.toml` (sections `[sources.<nom>]` : page du direct, piste audio, dossier de données) ; sans `--source`, c'est `capture.source` (CNews).
+
+| Source | Direct | Données |
+|---|---|---|
+| `cnews` | Dailymotion, Live CNEWS | `data/` |
+| `france4` | france.tv, France 4 (gratuit, sans DRM, piste française) | `data/france4/` |
+
+```powershell
+.\.venv\Scripts\python -m cnews_tts live --source france4 --condense --game
+.\.venv\Scripts\python -m cnews_tts capture --source france4
+```
+
+Chaque source a ses propres fichiers audio, transcriptions, couverture et journaux : on peut capturer CNews et France 4 en même temps (deux fenêtres). Pour une autre chaîne, ajoutez une section `[sources.<nom>]` avec l'`url` d'une page de direct que yt-dlp sait lire. Le direct de France 4 peut être réservé à la France et certains programmes ne sont pas diffusés en ligne (écran d'attente).
+
 ## Prérequis
 
 - Windows, Python 3.12, `ffmpeg` et `ffprobe` dans le `PATH`.
@@ -70,7 +86,7 @@ Une seule commande, indépendante de `capture` / `transcribe` : ffmpeg envoie le
 Ouvre la fenêtre des mots (à mettre sur un grand écran) et un petit serveur web. Les joueurs, sur le même Wi-Fi / réseau, ouvrent dans leur navigateur l'adresse affichée en haut de la fenêtre (ex. `http://192.168.1.20:8000`), choisissent un nom, et n'ont qu'un champ texte : ils regardent l'écran et tapent les mots qui tombent pour les effacer (Entrée ou espace ; accents et majuscules ignorés).
 
 - **1 point** par mot effacé ; un mot qui disparaît sans avoir été tapé compte comme « raté ».
-- **Mot rouge** : il explose (souffle les blocs voisins) et enlève des PV à tous les **autres** joueurs, d'autant plus qu'il est négatif (« guerre » : 23 PV).
+- **Mot rouge** : il explose, **détruit les mots autour de lui** (à moins de 180 px : ils ne rapportent rien et ne comptent pas comme ratés), souffle les suivants, et enlève des PV à tous les **autres** joueurs, d'autant plus qu'il est négatif (« guerre » : 23 PV).
 - **Mot vert** : il rend des PV à celui qui l'a tapé (100 au plus).
 - **0 PV** : KO pendant 10 s, puis retour avec 100 PV.
 

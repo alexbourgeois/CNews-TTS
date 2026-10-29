@@ -72,8 +72,12 @@ class Game:
             player.score += 1
             if score <= -NEUTRAL_BELOW:
                 kind = "rouge"
-                self.world.explode(block)
-                message = f"{player.name} fait exploser « {block.text} » : -{amount} PV aux autres"
+                destroyed = self.world.explode(block)
+                for other in destroyed:
+                    self.effects.append((*other.body.position, "détruit", now))
+                n = len(destroyed)
+                wreck = f" ({n} mot{'s' if n > 1 else ''} détruit{'s' if n > 1 else ''})" if n else ""
+                message = f"{player.name} fait exploser « {block.text} »{wreck} : -{amount} PV aux autres"
                 for other in self.players.values():
                     if other is player or other.hp == 0:
                         continue

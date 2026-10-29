@@ -77,14 +77,25 @@ def test_ko_player_waits_then_comes_back():
     assert game.erase("B", "loi", now=1 + RESPAWN_S)["ok"]
 
 
-def test_explosion_pushes_neighbours_away():
+def test_explosion_destroys_nearby_words_and_blows_the_others_away():
     world = WordWorld(800, 600)
-    bomb, near = drop(world, "guerre", x=400), drop(world, "loi", x=520)
+    bomb = drop(world, "guerre", x=400)
+    near, far = drop(world, "loi", x=520), drop(world, "paix", x=660)
     for _ in range(240):
         world.step(1 / 120)
-    world.explode(bomb)
-    assert bomb not in world.blocks
-    assert near.body.velocity.x > 100
+    assert world.explode(bomb) == [near]
+    assert world.blocks == [far]
+    assert far.body.velocity.x > 100
+
+
+def test_red_word_reports_destroyed_neighbours():
+    game, world = make("A", "B")
+    drop(world, "guerre", x=400)
+    drop(world, "loi", x=480)
+    result = game.erase("A", "guerre", now=1)
+    assert "1 mot détruit" in result["message"]
+    assert world.blocks == [] and game.players["A"].score == 1
+    assert len(game.effects) == 2  # l'explosion et le mot détruit
 
 
 def _call(url, data=None):

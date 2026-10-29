@@ -22,7 +22,8 @@ FADE_S = 1.0  # le mot s'efface pendant sa dernière seconde
 SPAWN_EVERY_S = 0.15  # les mots d'une même phrase tombent l'un après l'autre
 MAX_PENDING = 40
 SUBSTEPS = 4
-BLAST_RADIUS = 320  # px : portée du souffle d'un mot rouge qui explose
+DESTROY_RADIUS = 180  # px : un mot rouge qui explose détruit les mots dont le centre est plus près
+BLAST_RADIUS = 320  # px : au-delà, jusqu'ici, les mots sont seulement soufflés
 BLAST_SPEED = 1100  # px/s donnés à un mot collé à l'explosion, moins en s'éloignant
 BACKGROUND = (18, 20, 26)
 NEUTRAL_BG = (70, 76, 92)
@@ -129,10 +130,13 @@ class WordWorld:
         left = self.lifetime_s - (now - block.born)
         return round(255 * max(0.0, min(1.0, left / FADE_S)))
 
-    def explode(self, block: Block) -> None:
-        """Retire le mot et souffle ses voisins, d'autant plus fort qu'ils sont près."""
+    def explode(self, block: Block) -> list[Block]:
+        """Retire le mot, détruit ses voisins proches et souffle les suivants ; renvoie les mots détruits."""
         center = block.body.position
         self.remove(block)
+        destroyed = [b for b in self.blocks if (b.body.position - center).length < DESTROY_RADIUS]
+        for other in destroyed:
+            self.remove(other)
         for other in self.blocks:
             offset = other.body.position - center
             if offset.length >= BLAST_RADIUS:
@@ -140,6 +144,7 @@ class WordWorld:
             direction = (offset.normalized() if offset.length else pymunk.Vec2d(0, -1)) + (0, -0.6)
             other.body.velocity += direction.normalized() * BLAST_SPEED * (1 - offset.length / BLAST_RADIUS)
             other.body.angular_velocity += random.uniform(-6, 6)
+        return destroyed
 
     def remove(self, block: Block) -> None:
         if block is self._held:
@@ -170,7 +175,7 @@ def _render_block(pygame, font, text: str, lexicon: dict[str, float]):
 
 
 EFFECT_S = 0.6  # durée de l'onde d'un mot effacé
-EFFECT_COLORS = {"rouge": RED, "vert": GREEN, "neutre": GREY}
+EFFECT_COLORS = {"rouge": RED, "vert": GREEN, "neutre": GREY, "détruit": (255, 150, 60)}
 
 
 def _draw_game(pygame, screen, font, game, now: float, banner: str) -> None:
