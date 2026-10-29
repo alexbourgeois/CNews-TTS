@@ -22,6 +22,7 @@ def test_load_repo_config():
     assert cfg.speech_voice == "fr_FR-siwis-medium"
     assert cfg.voices_dir == REPO / "data" / "voices"
     assert cfg.window_lifetime_s == 10
+    assert cfg.game_port == 8000
 
 
 def test_alert_sound_is_relative_to_config(tmp_path):

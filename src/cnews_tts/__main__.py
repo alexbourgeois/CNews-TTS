@@ -48,6 +48,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="colorer les mots : rouge = négatif, vert = positif, d'autant plus vif que le mot est chargé")
     p_live.add_argument("--window", action="store_true",
                         help="faire tomber les mots dans une fenêtre (blocs colorés à attraper à la souris)")
+    p_live.add_argument("--game", action="store_true",
+                        help="jeu multijoueur : les joueurs effacent les mots en les tapant dans leur navigateur "
+                             "(ouvre la fenêtre)")
     p_live.add_argument("--alert", action="store_true",
                         help="jouer un son quand un mot de la liste [alert] de config.toml est prononcé")
 
@@ -93,7 +96,8 @@ def main(argv: list[str] | None = None) -> int:
         _setup_logging(cfg.logs_dir / "live.log", console=False)
         try:
             run_live(cfg, cfg.alert_keywords if args.alert else (), speak=args.speak, condense=args.condense,
-                     color=args.color, window=args.window)
+                     color=args.color,
+                     window=args.window or args.game, game=args.game)
         except KeyboardInterrupt:
             pass
     elif args.command == "coverage":

@@ -61,6 +61,21 @@ Le modèle reste chargé sur la carte graphique (~3-4 Go de mémoire vidéo) et 
 
 Une seule commande, indépendante de `capture` / `transcribe` : ffmpeg envoie le son du direct directement à Whisper (`large-v3-turbo`, plus rapide), découpé en mémoire aux pauses de parole (5 s au plus). Chaque phrase s'affiche **5 à 8 s après son début** ; `--alert` joue le son et marque la ligne quand un mot de la liste `[alert]` est prononcé. `--speak` lit chaque phrase à voix haute, sans l'heure ni le marqueur d'alerte, avec une voix neuronale française (Piper, hors ligne, calculée sur le processeur ~0,2 s par phrase) ; la voix (~60 Mo) est téléchargée dans `data/voices/` au premier lancement. Si la lecture prend du retard, les phrases les plus anciennes sont sautées pour rester au direct. Débit : `LENGTH_SCALE` dans `speech.py` (< 1 plus rapide) ; autre voix : `[speech] voice` dans `config.toml`. `--condense` n'affiche (et ne lit) que les mots-clés de chaque phrase : noms, noms propres, verbes à l'infinitif, adjectifs et nombres, sans articles, pronoms, prépositions, ni « être » / « avoir » (analyse grammaticale spaCy, hors ligne) ; l'alerte, elle, porte toujours sur la phrase entière. Exemple : « Ce n'est pas parce qu'il a 18 ans… » → `devoir éduquer enfant bout 18 ans responsable enfant`. `--color` colore chaque mot selon sa charge : rouge pour les mots négatifs, vert pour les positifs, d'autant plus vif que le mot est chargé (« guerre », « viol » en rouge vif ; « victoire », « formidable » en vert vif) ; les mots neutres gardent la couleur normale. Les notes viennent du lexique VADER traduit en français (~9 000 mots, notes de -4 à +4) : elles jugent le mot seul, sans le contexte (« pas grave » colore « grave » en rouge), et certaines traductions sont approximatives. Se combine avec `--condense`. `--window` ouvre une fenêtre où chaque mot tombe en bloc coloré (même code couleur que `--color`, gris-bleu si neutre) : les blocs rebondissent sur les bords, s'empilent, et s'effacent au bout de 10 s (`[window] lifetime_s` dans `config.toml`). On peut attraper un bloc à la souris, le déplacer et le lancer ; un bloc tenu ne disparaît pas. La fenêtre se redimensionne ; la fermer arrête `live`. À combiner avec `--condense` pour n'y voir que les mots-clés : `live --condense --window`. Rien n'est enregistré : pour le corpus d'analyse, gardez `capture` + `transcribe` (meilleure qualité, avec contexte). Le flux Dailymotion a lui-même quelques dizaines de secondes de retard sur la diffusion TV.
 
+### Jeu multijoueur : `live --game`
+
+```powershell
+.\.venv\Scripts\python -m cnews_tts live --condense --game
+```
+
+Ouvre la fenêtre des mots (à mettre sur un grand écran) et un petit serveur web. Les joueurs, sur le même Wi-Fi / réseau, ouvrent dans leur navigateur l'adresse affichée en haut de la fenêtre (ex. `http://192.168.1.20:8000`), choisissent un nom, et n'ont qu'un champ texte : ils regardent l'écran et tapent les mots qui tombent pour les effacer (Entrée ou espace ; accents et majuscules ignorés).
+
+- **1 point** par mot effacé ; un mot qui disparaît sans avoir été tapé compte comme « raté ».
+- **Mot rouge** : il explose (souffle les blocs voisins) et enlève des PV à tous les **autres** joueurs, d'autant plus qu'il est négatif (« guerre » : 23 PV).
+- **Mot vert** : il rend des PV à celui qui l'a tapé (100 au plus).
+- **0 PV** : KO pendant 10 s, puis retour avec 100 PV.
+
+Pas de compte ni de mot de passe : le nom suffit, et le reprendre (même depuis un autre appareil) reprend la partie de ce joueur. Au premier lancement, Windows demande s'il faut autoriser Python sur le réseau : acceptez pour les **réseaux privés**. Port : `[game] port` dans `config.toml` (8000).
+
 ### Suivre le texte transcrit par `transcribe --watch`
 
 Avec `capture` et `transcribe --watch` lancés, dans une troisième fenêtre :

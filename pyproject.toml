@@ -30,5 +30,8 @@ dev = ["pytest"]
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+cnews_tts = ["*.html"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

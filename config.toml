@@ -47,3 +47,7 @@ voice = "fr_FR-siwis-medium"
 [window]
 # Fenêtre de « live --window » : durée de vie d'un mot à l'écran, en secondes (il s'efface pendant la dernière).
 lifetime_s = 10
+
+[game]
+# « live --game » : port du serveur web ; les joueurs ouvrent http://<adresse de ce PC>:<port> sur le même réseau.
+port = 8000

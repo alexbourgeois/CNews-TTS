@@ -116,7 +116,7 @@ def _transcribe_stream(proc: subprocess.Popen, model, cfg: Config, keywords: tup
 
 
 def run_live(cfg: Config, keywords: tuple[str, ...] = (), speak: bool = False, condense: bool = False,
-             color: bool = False, window: bool = False) -> None:
+             color: bool = False, window: bool = False, game: bool = False) -> None:
     """Tourne jusqu'à Ctrl+C (ou la fermeture de la fenêtre) ; se reconnecte si le flux coupe."""
     sys.stdout.reconfigure(errors="replace")
     print(f"Chargement du modèle {cfg.live_model}…", flush=True)
@@ -140,13 +140,28 @@ def run_live(cfg: Config, keywords: tuple[str, ...] = (), speak: bool = False, c
 
     from cnews_tts.visual import run_window
 
+    party = server = None
+    banner = ""
+    if game:
+        from cnews_tts.game import Game, lan_address, start_server
+
+        party = Game(None, load_lexicon())
+        try:
+            server = start_server(party, "0.0.0.0", cfg.game_port)
+        except OSError as e:
+            raise SystemExit(f"Port {cfg.game_port} indisponible ({e}) : changez [game] port dans config.toml")
+        banner = f"Rejoindre : http://{lan_address()}:{cfg.game_port}"
+        print(f"— jeu ouvert. {banner} (même Wi-Fi / réseau que ce PC) —", flush=True)
+
     words, stop = queue.Queue(), threading.Event()
     worker = threading.Thread(target=_live_loop, args=(*args, words, stop), daemon=True)
     worker.start()
     try:
-        run_window(words, load_lexicon(), cfg.window_lifetime_s, stop)  # la fenêtre veut le fil principal
+        run_window(words, load_lexicon(), cfg.window_lifetime_s, stop, game=party, banner=banner)  # fil principal
     finally:
         stop.set()
+        if server:
+            server.shutdown()
         worker.join(timeout=20)
 
 

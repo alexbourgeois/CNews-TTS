@@ -24,6 +24,7 @@ class Config:
     alert_sound: Path | None = None
     speech_voice: str = "fr_FR-siwis-medium"
     window_lifetime_s: float = 10.0
+    game_port: int = 8000
 
     @property
     def voices_dir(self) -> Path:
@@ -74,4 +75,5 @@ def load_config(path: Path) -> Config:
         alert_sound=path.parent / sound if sound else None,
         speech_voice=raw.get("speech", {}).get("voice", "fr_FR-siwis-medium"),
         window_lifetime_s=float(raw.get("window", {}).get("lifetime_s", 10)),
+        game_port=int(raw.get("game", {}).get("port", 8000)),
     )
